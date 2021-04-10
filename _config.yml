@@ -58,8 +58,8 @@ kramdown:
 # Gitalk
 gitalk:
   enable: true    # 是否开启Gitalk评论
-  clientID: 99ecf1fdc9b7e357ebb7                            #生成的clientID
-  clientSecret: 2670daea0c10372dd0296c371edc5ee4e73db43f    #生成的clientSecret
+  clientID: f156a6608a982c553971                            #生成的clientID
+  clientSecret: d22a9860b1dbbf69418c69dc537f7ad875465135    #生成的clientSecret
   repo: dhwgithub.github.io    #仓库名称
   owner: dhwgithub    # github用户名
   admin: dhwgithub
@@ -75,7 +75,7 @@ ba_track_id: 9acee03023ad0c6c993dd86df81e2ac8
 
 # Featured Tags
 featured-tags: true                     # 是否使用首页标签
-featured-condition-size: 0              # 相同标签数量大于这个数，才会出现在首页
+featured-condition-size: 1              # 相同标签数量大于这个数，才会出现在首页
 
 
 
