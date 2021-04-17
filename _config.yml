@@ -90,5 +90,10 @@ friends: [
     {
         title: "GitHub·Hewen",
         href: "https://github.com/dhwgithub?tab=repositories"
+    },
+    {
+        title: "What to Eat ?",
+        href: "https://github.com/dhwgithub/dhwgithub.github.io/blob/main/tools/eat_what/index.html"
     }
+    
 ]
