@@ -86,7 +86,7 @@ service-worker: true
 
 
 # Friends
-Others: [
+Friends: [
     {
         title: "Friends·Hewen",
         href: "https://github.com/dhwgithub?tab=repositories"
