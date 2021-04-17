@@ -88,11 +88,7 @@ service-worker: true
 # Friends
 Friends: [
     {
-        title: "Friends·Hewen",
+        title: "GitHub·Hewen",
         href: "https://github.com/dhwgithub?tab=repositories"
-    }
-    {
-        title: "Tools·What to Eat?",
-        href: "https://dhwgithub.github.io/Tools/eat_what/index.html"
     }
 ]
