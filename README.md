@@ -1,26 +1,36 @@
-# dhwgithub 仓库导航页
+# dhwgithub 产品发布中心
 
-展示 [dhwgithub](https://github.com/dhwgithub) 全部公开仓库的单文件静态页面，托管在 GitHub Pages。
+展示独立开发软件产品的发布页，完全托管在 GitHub 上（Pages + Releases），无任何自有服务器。
+
+访问地址：<https://dhwgithub.github.io>
 
 ## 功能
 
-- 点击卡片直接跳转对应 GitHub 仓库
-- 搜索（名称 / 描述 / 标签 / 语言）
-- 语言筛选、排序（更新时间 / Star / 名称 / 创建时间 / 体积）
-- Fork 隐藏开关、网格 / 列表视图切换、深浅主题（跟随系统，可手动切换）
-- 「同步」按钮：浏览器直接调 GitHub API 刷新数据（未认证限额 60 次/小时）
-- 每周日由 GitHub Actions 自动拉取最新仓库列表并提交（见 `.github/workflows/sync.yml`）
+- **产品展示**：卡片列表、搜索、排序（最新发布 / 下载最多 / 名称）
+- **文件下载**：安装包与说明文件存放在 GitHub Release（单文件最大 2 GB），任何人无需登录即可直链下载，含实时下载计数
+- **产品详情**：说明（链接自动识别）、源码 / 主页链接、文件列表（类型徽标、大小、单文件下载量、补充说明）
+- **评论**：基于 giscus（GitHub Discussions），GitHub 用户可评论、回复、点赞，支持邮件通知
+- **管理后台**：仅 `dhwgithub` 可用，浏览器内直接发布 / 编辑 / 下架 / 删除产品，上传带进度条
+- 深浅主题（跟随系统，可手动切换，评论主题同步）
 
-## 结构
+## 架构
 
 ```
-index.html   页面本体（数据内联，单文件，无外部依赖）
-sync.py      数据同步脚本（Actions 调用，也可手动运行）
-.nojekyll    禁用 Jekyll 处理
+index.html          单文件前端（无构建、无外部 JS 依赖，评论除外）
+data/products.json  产品元数据（管理后台通过 GitHub Contents API 提交）
+Releases/           产品文件（安装包等，由后台通过 Releases API 上传）
+Discussions/        评论数据（giscus）
 ```
 
-## 本地更新数据
+## 管理员使用
 
-```bash
-python sync.py dhwgithub index.html
-```
+1. 打开站点，点右上角「管理」
+2. 粘贴一个 Fine-grained Token 登录（创建入口：GitHub Settings → Personal access tokens → Fine-grained；Repository access 选 Only select repositories → 本仓库；权限只需 Contents: Read and write）
+3. 填写产品信息并选择文件，点「发布」
+
+注意事项：
+
+- GitHub Release 资产不支持中文文件名，后台会自动改用安全文件名上传，页面显示名不受影响
+- 发布 / 修改后，GitHub Pages 约 1 分钟内刷新
+- giscus 评论按产品名称关联讨论，产品发布后请勿改名
+- Token 仅保存在管理员自己浏览器的 localStorage，直连 GitHub API

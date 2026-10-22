@@ -1,0 +1,32 @@
+{
+ "site": {
+  "title": "dhwgithub 产品发布中心",
+  "subtitle": "独立开发的软件产品 · 安装包下载 · 使用说明 · 用户评论",
+  "owner": "dhwgithub"
+ },
+ "products": [
+  {
+   "id": "demo-hello",
+   "name": "示例产品 Hello World",
+   "tagline": "演示发布流程的占位产品，正式使用前请在管理后台删除",
+   "desc": "这是「产品发布中心」自带的示例产品，用来验证完整流程：\n\n1. 下载区：任何人无需登录即可下载文件（文件实际存储在 GitHub Release，全球 CDN 直链）。\n2. 评论区：任何 GitHub 用户都可以登录后评论、回复、点赞。\n\n发布你自己的产品：\n\n1. 点击右上角「管理」。\n2. 粘贴一个仅授权本仓库、Contents 读写权限的 Fine-grained Token 登录。\n3. 填写产品信息、选择安装包文件，点「发布」即可。\n\n确认流程没问题后，回到管理后台把示例产品删掉。",
+   "version": "1.0.0",
+   "date": "2026-10-22",
+   "tag": "demo-hello-v1.0.0",
+   "links": {
+    "repo": "https://github.com/dhwgithub/dhwgithub.github.io",
+    "homepage": ""
+   },
+   "files": [
+    {
+     "name": "使用说明.txt",
+     "asset": "readme.txt",
+     "size": 298,
+     "url": "https://github.com/dhwgithub/dhwgithub.github.io/releases/download/demo-hello-v1.0.0/readme.txt",
+     "note": "演示文件：内容为一段说明文字"
+    }
+   ],
+   "hidden": false
+  }
+ ]
+}
