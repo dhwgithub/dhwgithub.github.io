@@ -937,7 +937,10 @@ async function doPublish() {
 /* ---------- 数据提交 ---------- */
 async function commitData(mutate, message) {
   const cur = await gh("GET", "/repos/" + REPO_FULL + "/contents/" + DATA_PATH + "?ref=main");
-  const parsed = JSON.parse(atob(cur.content.replace(/\n/g, "")));
+  /* base64 → 字节 → UTF-8 文本（直接用 atob 会把中文按单字节拆坏） */
+  const bin = atob(cur.content.replace(/\n/g, ""));
+  const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+  const parsed = JSON.parse(new TextDecoder("utf-8").decode(bytes));
   const updated = mutate(parsed);
   const body = {
     message,
