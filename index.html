@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dhwgithub · 开源仓库</title>
+<meta name="description" content="dhwgithub 的 GitHub 开源仓库导航页">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='14'>📦</text></svg>">
+<style>
+:root{
+  --bg:#f6f8fa; --card:#ffffff; --card-hover:#f6f8fa;
+  --border:#d0d7de; --border-soft:#e4e8ed;
+  --fg:#1f2328; --fg-muted:#656d76; --fg-subtle:#8c959f;
+  --accent:#0969da; --accent-soft:#ddf4ff;
+  --chip:#eaeef2; --shadow:0 1px 3px rgba(31,35,40,.06),0 6px 16px rgba(31,35,40,.06);
+  --shadow-hover:0 2px 6px rgba(31,35,40,.09),0 12px 28px rgba(31,35,40,.11);
+  --star:#eac54f;
+}
+[data-theme="dark"]{
+  --bg:#0d1117; --card:#161b22; --card-hover:#1c2129;
+  --border:#30363d; --border-soft:#21262d;
+  --fg:#e6edf3; --fg-muted:#8b949e; --fg-subtle:#6e7681;
+  --accent:#58a6ff; --accent-soft:#0d2d4d;
+  --chip:#21262d; --shadow:0 0 0 1px rgba(255,255,255,.03),0 6px 16px rgba(0,0,0,.4);
+  --shadow-hover:0 0 0 1px rgba(255,255,255,.06),0 12px 28px rgba(0,0,0,.5);
+  --star:#e3b341;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:15px; line-height:1.6; -webkit-font-smoothing:antialiased;
+  transition:background .25s ease,color .25s ease;
+}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+
+/* ---------- Header ---------- */
+header{
+  border-bottom:1px solid var(--border-soft);
+  background:var(--card);
+  transition:background .25s ease;
+}
+.hd-inner{max-width:1180px;margin:0 auto;padding:32px 24px 26px;display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}
+.avatar{
+  width:88px;height:88px;border-radius:50%;border:1px solid var(--border);
+  background:var(--chip);flex-shrink:0;object-fit:cover;
+}
+.hd-main{flex:1;min-width:260px}
+.hd-main h1{font-size:26px;font-weight:650;letter-spacing:-.2px;line-height:1.3}
+.hd-main h1 a{color:var(--accent)}
+.hd-main h1 a:hover{text-decoration:underline}
+.sub{color:var(--fg-muted);font-size:14px;margin-top:4px}
+.stats{display:flex;gap:20px;margin-top:14px;flex-wrap:wrap}
+.stat{display:flex;align-items:baseline;gap:6px;font-size:13px;color:var(--fg-muted)}
+.stat b{font-size:16px;font-weight:650;color:var(--fg)}
+.theme-btn{
+  background:var(--card);border:1px solid var(--border);color:var(--fg);
+  width:38px;height:38px;border-radius:8px;cursor:pointer;display:grid;place-items:center;
+  transition:background .15s,border-color .15s;flex-shrink:0;
+}
+.theme-btn:hover{background:var(--chip)}
+.theme-btn svg{width:18px;height:18px;fill:var(--fg)}
+[data-theme="light"] .ico-moon{display:block}
+[data-theme="light"] .ico-sun{display:none}
+[data-theme="dark"] .ico-moon{display:none}
+[data-theme="dark"] .ico-sun{display:block}
+
+/* ---------- Toolbar ---------- */
+.toolbar{
+  position:sticky;top:0;z-index:20;
+  background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:saturate(180%) blur(12px);-webkit-backdrop-filter:saturate(180%) blur(12px);
+  border-bottom:1px solid var(--border-soft);
+}
+.tb-inner{max-width:1180px;margin:0 auto;padding:14px 24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.search{position:relative;flex:1;min-width:220px}
+.search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;fill:var(--fg-subtle)}
+.search input{
+  width:100%;padding:9px 14px 9px 36px;font-size:14px;font-family:inherit;
+  background:var(--card);color:var(--fg);border:1px solid var(--border);
+  border-radius:8px;outline:none;transition:border-color .15s,box-shadow .15s;
+}
+.search input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+select,.btn{
+  padding:9px 13px;font-size:14px;font-family:inherit;
+  background:var(--card);color:var(--fg);border:1px solid var(--border);
+  border-radius:8px;cursor:pointer;outline:none;transition:background .15s,border-color .15s;
+}
+select:hover,.btn:hover{background:var(--chip)}
+.btn{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn svg{width:15px;height:15px;fill:currentColor}
+.btn.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.viewtoggle{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--card)}
+.viewtoggle button{
+  background:transparent;border:0;padding:9px 11px;cursor:pointer;color:var(--fg-muted);
+  display:grid;place-items:center;transition:background .15s,color .15s;
+}
+.viewtoggle button svg{width:16px;height:16px;fill:currentColor}
+.viewtoggle button.on{background:var(--accent);color:#fff}
+
+.langbar{max-width:1180px;margin:0 auto;padding:0 24px 14px;display:flex;gap:7px;flex-wrap:wrap}
+.chip{
+  padding:4px 11px;font-size:12.5px;border-radius:999px;cursor:pointer;
+  background:var(--chip);color:var(--fg-muted);border:1px solid transparent;
+  transition:all .15s;display:inline-flex;align-items:center;gap:6px;user-select:none;
+}
+.chip:hover{color:var(--fg)}
+.chip.on{background:var(--accent);color:#fff}
+.chip .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.chip .n{opacity:.65;font-size:11.5px}
+
+/* ---------- Grid ---------- */
+main{padding:26px 0 60px;min-height:50vh}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px}
+.grid.list{grid-template-columns:1fr;gap:10px}
+.card{
+  display:block;background:var(--card);border:1px solid var(--border);border-radius:11px;
+  padding:18px;box-shadow:var(--shadow);
+  transition:transform .18s cubic-bezier(.2,.7,.3,1),box-shadow .18s,border-color .18s,background .18s;
+  position:relative;overflow:hidden;
+}
+.card:hover{transform:translateY(-3px);box-shadow:var(--shadow-hover);border-color:color-mix(in srgb,var(--accent) 45%,var(--border));background:var(--card-hover)}
+.card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.card::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);
+  transform:scaleY(0);transform-origin:center;transition:transform .22s cubic-bezier(.2,.7,.3,1);
+}
+.card:hover::before{transform:scaleY(1)}
+.c-title{display:flex;align-items:flex-start;gap:8px;margin-bottom:7px}
+.c-title .nm{
+  font-size:15.5px;font-weight:620;color:var(--accent);word-break:break-all;line-height:1.4;
+}
+.card:hover .nm{text-decoration:underline}
+.badge{
+  font-size:10.5px;padding:2px 7px;border-radius:999px;border:1px solid var(--border);
+  color:var(--fg-muted);background:var(--chip);flex-shrink:0;font-weight:500;letter-spacing:.02em;
+}
+.badge.fork{border-color:color-mix(in srgb,#8250df 50%,var(--border));color:#8250df}
+.badge.arch{border-color:color-mix(in srgb,#bf8700 50%,var(--border));color:#bf8700}
+.c-desc{
+  font-size:13.5px;color:var(--fg-muted);line-height:1.6;
+  display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  min-height:2.6em;
+}
+.topics{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px}
+.topic{
+  font-size:11.5px;padding:2px 8px;border-radius:999px;
+  background:var(--accent-soft);color:var(--accent);
+}
+.meta{display:flex;gap:15px;flex-wrap:wrap;margin-top:13px;font-size:12.5px;color:var(--fg-muted);align-items:center}
+.meta span{display:inline-flex;align-items:center;gap:4.5px}
+.meta svg{width:14px;height:14px;fill:currentColor}
+.lang{display:inline-flex;align-items:center;gap:5px}
+.lang .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.star svg{fill:var(--star)}
+
+/* list view */
+.list .card{display:flex;align-items:center;gap:16px;padding:13px 18px}
+.list .c-title{margin-bottom:2px}
+.list .c-desc{-webkit-line-clamp:1;line-clamp:1;min-height:auto;flex:1;max-width:44%}
+.list .c-body{flex:1;min-width:0}
+.list .meta{margin-top:5px}
+.list .card::before{bottom:auto;top:0;left:0;right:0;height:2px;width:auto;transform:scaleX(0)}
+.list .card:hover::before{transform:scaleX(1)}
+
+.empty{text-align:center;padding:70px 20px;color:var(--fg-muted)}
+.empty .big{font-size:42px;margin-bottom:12px;opacity:.55}
+footer{border-top:1px solid var(--border-soft);padding:26px 0;color:var(--fg-subtle);font-size:12.5px}
+.ft-inner{max-width:1180px;margin:0 auto;padding:0 24px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+footer a{color:var(--accent)}
+footer a:hover{text-decoration:underline}
+.toast{
+  position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--fg);color:var(--bg);padding:10px 18px;border-radius:8px;font-size:13.5px;
+  opacity:0;transition:all .3s cubic-bezier(.2,.7,.3,1);z-index:99;pointer-events:none;
+  box-shadow:0 8px 24px rgba(0,0,0,.18);
+}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.hidden{display:none !important}
+@media (max-width:640px){
+  .hd-inner{padding:24px 18px 20px}
+  .wrap,.tb-inner,.langbar,.ft-inner{padding-left:18px;padding-right:18px}
+  .avatar{width:66px;height:66px}
+  .hd-main h1{font-size:21px}
+  .grid{grid-template-columns:1fr}
+  .list .c-desc{display:none}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hd-inner">
+    <img class="avatar" id="avatar" alt="avatar" src="">
+    <div class="hd-main">
+      <h1><a id="login" href="https://github.com/dhwgithub" target="_blank" rel="noopener">dhwgithub</a></h1>
+      <div class="sub">GitHub 仓库导航 · 点击卡片直接访问源码</div>
+      <div class="stats">
+        <div class="stat"><b id="s-repos">0</b> 个仓库</div>
+        <div class="stat"><b id="s-stars">0</b> 个 star</div>
+        <div class="stat"><b id="s-forks">0</b> 个 fork</div>
+        <div class="stat"><b id="s-langs">0</b> 种语言</div>
+      </div>
+    </div>
+    <button class="theme-btn" id="themeBtn" title="切换主题" aria-label="切换主题">
+      <svg class="ico-moon" viewBox="0 0 16 16"><path d="M9.598 1.591a.75.75 0 0 1 .785-.175 7 7 0 1 1-8.967 8.967.75.75 0 0 1 .961-.96 5.5 5.5 0 0 0 7.046-7.046.75.75 0 0 1 .175-.786Zm1.616 1.945a7 7 0 0 1-7.678 7.678 5.5 5.5 0 1 0 7.678-7.678Z"/></svg>
+      <svg class="ico-sun" viewBox="0 0 16 16"><path d="M8 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-1.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm5.657-8.157a.75.75 0 0 1 0 1.061l-1.061 1.06a.75.75 0 1 1-1.06-1.06l1.06-1.06a.75.75 0 0 1 1.06 0Zm-9.193 9.193a.75.75 0 0 1 0 1.06l-1.06 1.061a.75.75 0 1 1-1.061-1.06l1.06-1.061a.75.75 0 0 1 1.061 0ZM8 0a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V.75A.75.75 0 0 1 8 0ZM3 8a.75.75 0 0 1-.75.75H.75a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 3 8Zm13 0a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 16 8ZM8 13a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 8 13ZM2.343 2.343a.75.75 0 0 1 1.061 0l1.06 1.061a.75.75 0 0 1-1.06 1.06l-1.06-1.06a.75.75 0 0 1 0-1.06Zm9.193 9.193a.75.75 0 0 1 1.06 0l1.061 1.06a.75.75 0 0 1-1.06 1.061l-1.061-1.06a.75.75 0 0 1 0-1.061Z"/></svg>
+    </button>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="tb-inner">
+    <div class="search">
+      <svg viewBox="0 0 16 16"><path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/></svg>
+      <input id="q" type="search" placeholder="搜索仓库名 / 描述 / 标签…" autocomplete="off">
+    </div>
+    <select id="sort">
+      <option value="updated">最近更新</option>
+      <option value="stars">Star 最多</option>
+      <option value="name">名称 A→Z</option>
+      <option value="created">最新创建</option>
+      <option value="size">体积最大</option>
+    </select>
+    <button class="btn on" id="hideFork" title="隐藏 / 显示 fork 的仓库">
+      <svg viewBox="0 0 16 16"><path d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75v-.878a2.25 2.25 0 1 1 1.5 0v.878a2.25 2.25 0 0 1-2.25 2.25h-1.5v2.128a2.251 2.251 0 1 1-1.5 0V8.5h-1.5A2.25 2.25 0 0 1 3.5 6.25v-.878a2.25 2.25 0 1 1 1.5 0ZM5 3.25a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Zm6.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm-3 8.75a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Z"/></svg>
+      隐藏 Fork
+    </button>
+    <div class="viewtoggle">
+      <button id="vGrid" class="on" title="网格视图" aria-label="网格视图"><svg viewBox="0 0 16 16"><path d="M1 2.75A.75.75 0 0 1 1.75 2h3.5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-.75.75h-3.5A.75.75 0 0 1 1 6.25Zm1.5 3h2v-2h-2Zm-1.5 4.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-.75.75h-3.5a.75.75 0 0 1-.75-.75Zm1.5 3h2v-2h-2ZM8.25 2h6.5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-.75.75h-6.5A.75.75 0 0 1 7.5 6.25v-3.5A.75.75 0 0 1 8.25 2Zm.75 3.5h5v-2H9Zm-.75 3.75h6.5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-.75.75h-6.5a.75.75 0 0 1-.75-.75v-3.5a.75.75 0 0 1 .75-.75Zm.75 3.5h5v-2H9Z"/></svg></button>
+      <button id="vList" title="列表视图" aria-label="列表视图"><svg viewBox="0 0 16 16"><path d="M2 4a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm3.75-1.5a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5a.75.75 0 0 1-.75-.75Zm0 5a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5a.75.75 0 0 1-.75-.75Zm0 5a.75.75 0 0 1 .75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5a.75.75 0 0 1-.75-.75ZM3 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm-1 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></svg></button>
+    </div>
+    <button class="btn" id="refreshBtn" title="从 GitHub API 拉取最新数据">
+      <svg viewBox="0 0 16 16"><path d="M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z"/></svg>
+      同步
+    </button>
+  </div>
+  <div class="langbar" id="langbar"></div>
+</div>
+
+<main>
+  <div class="wrap">
+    <div class="grid" id="grid"></div>
+    <div class="empty hidden" id="empty">
+      <div class="big">🔍</div>
+      <div>没有匹配的仓库，换个关键词试试</div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="ft-inner">
+    <div>数据来源 <a href="https://api.github.com" target="_blank" rel="noopener">GitHub API</a> · 页面托管于 GitHub Pages · 最后同步 <span id="synced">—</span></div>
+    <div><a href="https://github.com/dhwgithub" target="_blank" rel="noopener">github.com/dhwgithub</a></div>
+  </div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== 内联快照数据（构建时生成，保证离线可用） ===== */
+const SNAPSHOT = {
+ "profile": {
+  "login": "dhwgithub",
+  "avatar": "https://avatars.githubusercontent.com/u/50670682?v=4",
+  "url": "https://github.com/dhwgithub"
+ },
+ "repos": [
+  {
+   "name": "Django_demo",
+   "desc": "Python-Django框架入门教程，学习自用",
+   "lang": "Python",
+   "stars": 0,
+   "forks": 0,
+   "fork": false,
+   "archived": false,
+   "topics": [],
+   "updated": "2026-06-09",
+   "created": "2020-05-24",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/Django_demo",
+   "size": 1157,
+   "branch": "master",
+   "license": null,
+   "open_issues": 0
+  },
+  {
+   "name": "Machine-learning-combat-based-on-Python",
+   "desc": "基于Python3的《机器学习实战》（附源代码、运行截图及数据集）",
+   "lang": "HTML",
+   "stars": 1,
+   "forks": 2,
+   "fork": false,
+   "archived": false,
+   "topics": [
+    "html",
+    "python3"
+   ],
+   "updated": "2024-08-28",
+   "created": "2020-04-13",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/Machine-learning-combat-based-on-Python",
+   "size": 32887,
+   "branch": "master",
+   "license": null,
+   "open_issues": 0
+  },
+  {
+   "name": "WeChat_Mini_Program",
+   "desc": "微信小程序+SpringBoot框架入门项目",
+   "lang": "Java",
+   "stars": 2,
+   "forks": 0,
+   "fork": false,
+   "archived": false,
+   "topics": [],
+   "updated": "2024-06-26",
+   "created": "2019-11-30",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/WeChat_Mini_Program",
+   "size": 29,
+   "branch": "master",
+   "license": null,
+   "open_issues": 1
+  },
+  {
+   "name": "CCF-CSP-Recording",
+   "desc": "CCF-CSP认证模拟算法题记录",
+   "lang": "Java",
+   "stars": 1,
+   "forks": 0,
+   "fork": false,
+   "archived": false,
+   "topics": [],
+   "updated": "2024-03-06",
+   "created": "2020-08-19",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/CCF-CSP-Recording",
+   "size": 44,
+   "branch": "master",
+   "license": null,
+   "open_issues": 0
+  },
+  {
+   "name": "CoinFlip",
+   "desc": "QT入门项目翻金币",
+   "lang": "C++",
+   "stars": 0,
+   "forks": 0,
+   "fork": false,
+   "archived": false,
+   "topics": [],
+   "updated": "2023-07-15",
+   "created": "2023-07-15",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/CoinFlip",
+   "size": 2167,
+   "branch": "main",
+   "license": null,
+   "open_issues": 0
+  },
+  {
+   "name": "oto",
+   "desc": "校园商铺项目练习",
+   "lang": "Java",
+   "stars": 0,
+   "forks": 0,
+   "fork": false,
+   "archived": false,
+   "topics": [],
+   "updated": "2023-01-31",
+   "created": "2019-12-02",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/oto",
+   "size": 257,
+   "branch": "master",
+   "license": null,
+   "open_issues": 11
+  },
+  {
+   "name": "aomao",
+   "desc": "小学期项目-SSM+Maven",
+   "lang": "Java",
+   "stars": 2,
+   "forks": 0,
+   "fork": false,
+   "archived": false,
+   "topics": [],
+   "updated": "2023-01-31",
+   "created": "2019-12-01",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/aomao",
+   "size": 2382,
+   "branch": "master",
+   "license": null,
+   "open_issues": 9
+  },
+  {
+   "name": "Maven_SSM",
+   "desc": "Maven_SSM入门",
+   "lang": "Java",
+   "stars": 0,
+   "forks": 0,
+   "fork": false,
+   "archived": false,
+   "topics": [],
+   "updated": "2023-01-31",
+   "created": "2019-12-01",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/Maven_SSM",
+   "size": 35,
+   "branch": "master",
+   "license": null,
+   "open_issues": 9
+  },
+  {
+   "name": "TableNet-pytorch",
+   "desc": "Pytorch Implementation of TableNet",
+   "lang": null,
+   "stars": 0,
+   "forks": 0,
+   "fork": true,
+   "archived": false,
+   "topics": [],
+   "updated": "2022-05-31",
+   "created": "2022-06-02",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/TableNet-pytorch",
+   "size": 43167,
+   "branch": "main",
+   "license": "MIT",
+   "open_issues": 0
+  },
+  {
+   "name": "OCR_tablenet",
+   "desc": "TableNet Implementation on Pytorch",
+   "lang": null,
+   "stars": 0,
+   "forks": 0,
+   "fork": true,
+   "archived": false,
+   "topics": [],
+   "updated": "2022-05-27",
+   "created": "2022-06-02",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/OCR_tablenet",
+   "size": 62636,
+   "branch": "master",
+   "license": null,
+   "open_issues": 0
+  },
+  {
+   "name": "CPlusPlus",
+   "desc": "",
+   "lang": "C++",
+   "stars": 0,
+   "forks": 0,
+   "fork": false,
+   "archived": false,
+   "topics": [],
+   "updated": "2022-03-17",
+   "created": "2022-03-17",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/CPlusPlus",
+   "size": 64401,
+   "branch": "main",
+   "license": null,
+   "open_issues": 0
+  },
+  {
+   "name": "Graduate_Study_Notes",
+   "desc": "研究生学习的一些新的和记录",
+   "lang": "Java",
+   "stars": 0,
+   "forks": 0,
+   "fork": false,
+   "archived": false,
+   "topics": [],
+   "updated": "2021-08-25",
+   "created": "2020-11-14",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/Graduate_Study_Notes",
+   "size": 32912,
+   "branch": "main",
+   "license": null,
+   "open_issues": 0
+  },
+  {
+   "name": "Cpp_Primer_Practice",
+   "desc": "搞定C++:punch:。C++ Primer 中文版第5版学习仓库，包括笔记和课后练习答案。",
+   "lang": null,
+   "stars": 0,
+   "forks": 0,
+   "fork": true,
+   "archived": false,
+   "topics": [],
+   "updated": "2021-08-24",
+   "created": "2021-08-24",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/Cpp_Primer_Practice",
+   "size": 3212,
+   "branch": "master",
+   "license": null,
+   "open_issues": 0
+  },
+  {
+   "name": "Algorithm-Learn",
+   "desc": "算法学习与提高（c/c++版本）",
+   "lang": "C++",
+   "stars": 0,
+   "forks": 0,
+   "fork": false,
+   "archived": false,
+   "topics": [],
+   "updated": "2021-07-09",
+   "created": "2021-07-04",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/Algorithm-Learn",
+   "size": 7,
+   "branch": "main",
+   "license": null,
+   "open_issues": 0
+  },
+  {
+   "name": "Chinese_entity_annotation",
+   "desc": "Tkinter编写的简易实体标注软件",
+   "lang": "Python",
+   "stars": 0,
+   "forks": 0,
+   "fork": false,
+   "archived": false,
+   "topics": [],
+   "updated": "2021-05-18",
+   "created": "2020-11-04",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/Chinese_entity_annotation",
+   "size": 33923,
+   "branch": "main",
+   "license": null,
+   "open_issues": 0
+  },
+  {
+   "name": "Tools",
+   "desc": "",
+   "lang": "JavaScript",
+   "stars": 0,
+   "forks": 0,
+   "fork": false,
+   "archived": false,
+   "topics": [],
+   "updated": "2021-04-17",
+   "created": "2021-04-17",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/Tools",
+   "size": 4,
+   "branch": "main",
+   "license": null,
+   "open_issues": 0
+  },
+  {
+   "name": "Leetcode-Summary",
+   "desc": "Leetcode刷题总结（Java版）——更新中",
+   "lang": "Java",
+   "stars": 0,
+   "forks": 3,
+   "fork": false,
+   "archived": false,
+   "topics": [
+    "java",
+    "leetcode-java"
+   ],
+   "updated": "2021-04-17",
+   "created": "2020-05-12",
+   "homepage": "https://github.com/dhwgithub/Leetcode-Summary",
+   "url": "https://github.com/dhwgithub/Leetcode-Summary",
+   "size": 308,
+   "branch": "master",
+   "license": null,
+   "open_issues": 0
+  },
+  {
+   "name": "CS-Book",
+   "desc": "计算机类常用电子书整理，并且附带下载链接，包括Java，Python，Linux，Go，C，C++，数据结构与算法，人工智能，计算机基础，面试，设计模式，数据库，前端等书籍",
+   "lang": null,
+   "stars": 0,
+   "forks": 0,
+   "fork": true,
+   "archived": false,
+   "topics": [],
+   "updated": "2021-02-03",
+   "created": "2021-02-03",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/CS-Book",
+   "size": 495,
+   "branch": "master",
+   "license": null,
+   "open_issues": 0
+  },
+  {
+   "name": "NLP_Learn_Record",
+   "desc": "NLP学习记录",
+   "lang": "Jupyter Notebook",
+   "stars": 0,
+   "forks": 0,
+   "fork": false,
+   "archived": false,
+   "topics": [],
+   "updated": "2021-01-19",
+   "created": "2020-11-02",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/NLP_Learn_Record",
+   "size": 6921,
+   "branch": "main",
+   "license": null,
+   "open_issues": 0
+  },
+  {
+   "name": "Deep-learning-combat",
+   "desc": "深度学习python+tensorflow实战",
+   "lang": "Jupyter Notebook",
+   "stars": 0,
+   "forks": 0,
+   "fork": false,
+   "archived": false,
+   "topics": [],
+   "updated": "2021-01-19",
+   "created": "2020-07-05",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/Deep-learning-combat",
+   "size": 74070,
+   "branch": "master",
+   "license": null,
+   "open_issues": 0
+  },
+  {
+   "name": "SealUtil",
+   "desc": "印章生成工具：使用Java Graphics2D生成各类圆形/椭圆公章、私章图片",
+   "lang": "Java",
+   "stars": 0,
+   "forks": 0,
+   "fork": true,
+   "archived": false,
+   "topics": [],
+   "updated": "2020-12-04",
+   "created": "2020-12-04",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/SealUtil",
+   "size": 213,
+   "branch": "master",
+   "license": null,
+   "open_issues": 0
+  },
+  {
+   "name": "Python-GUI",
+   "desc": "python GUI学习",
+   "lang": "Python",
+   "stars": 0,
+   "forks": 0,
+   "fork": false,
+   "archived": false,
+   "topics": [],
+   "updated": "2020-12-01",
+   "created": "2020-08-18",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/Python-GUI",
+   "size": 8684,
+   "branch": "master",
+   "license": null,
+   "open_issues": 0
+  },
+  {
+   "name": "yolov3-tf2",
+   "desc": "YoloV3 Implemented in Tensorflow 2.0",
+   "lang": null,
+   "stars": 0,
+   "forks": 0,
+   "fork": true,
+   "archived": false,
+   "topics": [],
+   "updated": "2020-11-21",
+   "created": "2020-11-21",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/yolov3-tf2",
+   "size": 4327,
+   "branch": "master",
+   "license": "MIT",
+   "open_issues": 0
+  },
+  {
+   "name": "ML-Example-Small-Project",
+   "desc": "机器学习实例小项目 - 使用Python3和Tensorflow开发",
+   "lang": "Python",
+   "stars": 0,
+   "forks": 1,
+   "fork": false,
+   "archived": false,
+   "topics": [],
+   "updated": "2020-11-19",
+   "created": "2020-10-29",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/ML-Example-Small-Project",
+   "size": 18679,
+   "branch": "main",
+   "license": null,
+   "open_issues": 0
+  },
+  {
+   "name": "Basic-process-of-training-models-with-TensorFlow-2.0",
+   "desc": ":book:TensorFlow 2.0 训练模型基本流程（TFRecord+Model+Serving）",
+   "lang": null,
+   "stars": 0,
+   "forks": 0,
+   "fork": true,
+   "archived": false,
+   "topics": [],
+   "updated": "2020-11-01",
+   "created": "2020-09-02",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/Basic-process-of-training-models-with-TensorFlow-2.0",
+   "size": 9755,
+   "branch": "master",
+   "license": null,
+   "open_issues": 0
+  },
+  {
+   "name": "DN_Training_Model_Summary",
+   "desc": "Tensorflow_2.0.0 深度网络模型训练小结，含数据集制作与增强、模型创建与保存、可视化和模型训练及记录等",
+   "lang": "Python",
+   "stars": 0,
+   "forks": 0,
+   "fork": false,
+   "archived": false,
+   "topics": [],
+   "updated": "2020-09-15",
+   "created": "2020-09-03",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/DN_Training_Model_Summary",
+   "size": 47,
+   "branch": "master",
+   "license": null,
+   "open_issues": 0
+  },
+  {
+   "name": "Statistical-learning-methods",
+   "desc": "《统计学习方法（李航）》思维导图总结",
+   "lang": null,
+   "stars": 1,
+   "forks": 0,
+   "fork": false,
+   "archived": false,
+   "topics": [],
+   "updated": "2020-05-05",
+   "created": "2019-12-22",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/Statistical-learning-methods",
+   "size": 17660,
+   "branch": "master",
+   "license": null,
+   "open_issues": 0
+  },
+  {
+   "name": "Image_processing",
+   "desc": "python图像处理实训小项目",
+   "lang": "Python",
+   "stars": 0,
+   "forks": 0,
+   "fork": false,
+   "archived": false,
+   "topics": [],
+   "updated": "2020-01-09",
+   "created": "2020-01-09",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/Image_processing",
+   "size": 1173,
+   "branch": "master",
+   "license": null,
+   "open_issues": 0
+  },
+  {
+   "name": "SpringBootDemo",
+   "desc": "SpringBootDemo",
+   "lang": "TSQL",
+   "stars": 0,
+   "forks": 0,
+   "fork": false,
+   "archived": false,
+   "topics": [],
+   "updated": "2019-12-01",
+   "created": "2019-12-01",
+   "homepage": "",
+   "url": "https://github.com/dhwgithub/SpringBootDemo",
+   "size": 18,
+   "branch": "master",
+   "license": null,
+   "open_issues": 1
+  }
+ ],
+ "generated": "2026-10-22"
+};
+
+/* ===== 语言配色（GitHub 官方色） ===== */
+const LANG_COLOR = {
+  "Python":"#3572A5","Java":"#b07219","C++":"#f34b7d","C":"#555555","JavaScript":"#f1e05a",
+  "TypeScript":"#3178c6","HTML":"#e34c26","CSS":"#563d7c","Jupyter Notebook":"#DA5B0B",
+  "TSQL":"#e38c00","Go":"#00ADD8","Rust":"#dea584","Shell":"#89e051","Vue":"#41b883",
+  "C#":"#178600","PHP":"#4F5D95","Kotlin":"#A97BFF","Swift":"#F05138","Ruby":"#701516",
+  "Dart":"#00B4AB","Scala":"#c22d40","R":"#198CE7","Makefile":"#427819","CMake":"#DA3434",
+  "Dockerfile":"#384d54","Vue.js":"#41b883","Objective-C":"#438eff","Assembly":"#6E4C13"
+};
+const langColor = l => LANG_COLOR[l] || "#8c959f";
+
+/* ===== 状态 ===== */
+const state = {
+  data: SNAPSHOT,
+  q: "", lang: "", sort: "updated", hideFork: true, view: "grid"
+};
+const $ = s => document.querySelector(s);
+const esc = s => (s||"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ago = d => {
+  if(!d) return "—";
+  const diff = Math.floor((Date.now() - new Date(d)) / 86400000);
+  if(diff < 1) return "今天";
+  if(diff < 30) return diff + " 天前";
+  if(diff < 365) return Math.floor(diff/30) + " 个月前";
+  return Math.floor(diff/365) + " 年前";
+};
+
+/* ===== 主题 ===== */
+function initTheme(){
+  const saved = localStorage.getItem("gh-theme");
+  const sys = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  document.documentElement.dataset.theme = saved || sys;
+}
+$("#themeBtn").onclick = () => {
+  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = next;
+  localStorage.setItem("gh-theme", next);
+};
+
+/* ===== 统计 ===== */
+function renderStats(){
+  const r = state.data.repos;
+  $("#s-repos").textContent = r.length;
+  $("#s-stars").textContent = r.reduce((a,b) => a + b.stars, 0);
+  $("#s-forks").textContent = r.reduce((a,b) => a + b.forks, 0);
+  $("#s-langs").textContent = new Set(r.map(x => x.lang).filter(Boolean)).size;
+  $("#login").textContent = state.data.profile.login;
+  $("#login").href = state.data.profile.url;
+  $("#avatar").src = state.data.profile.avatar;
+  $("#synced").textContent = state.data.generated || "—";
+  document.title = state.data.profile.login + " · 开源仓库";
+}
+
+/* ===== 语言筛选条 ===== */
+function renderLangbar(){
+  const counts = {};
+  state.data.repos.forEach(r => { if(r.lang) counts[r.lang] = (counts[r.lang]||0) + 1; });
+  const langs = Object.entries(counts).sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0]));
+  const mk = (val, label, n, color) =>
+    `<div class="chip ${state.lang===val?"on":""}" data-lang="${esc(val)}">${color?`<i class="dot" style="background:${color}"></i>`:""}${esc(label)}<span class="n">${n}</span></div>`;
+  $("#langbar").innerHTML = mk("", "全部", state.data.repos.length, "") +
+    langs.map(([l,n]) => mk(l, l, n, langColor(l))).join("");
+  $("#langbar").onclick = e => {
+    const chip = e.target.closest(".chip");
+    if(!chip) return;
+    state.lang = chip.dataset.lang;
+    renderLangbar(); render();
+  };
+}
+
+/* ===== 卡片 ===== */
+function card(r){
+  const badges = [
+    r.fork ? '<span class="badge fork">Fork</span>' : "",
+    r.archived ? '<span class="badge arch">已归档</span>' : "",
+    r.homepage ? '<span class="badge">有主页</span>' : ""
+  ].join("");
+  const topics = (r.topics||[]).slice(0,3).map(t => `<span class="topic">${esc(t)}</span>`).join("");
+  const lang = r.lang
+    ? `<span class="lang"><i class="dot" style="background:${langColor(r.lang)}"></i>${esc(r.lang)}</span>` : "";
+  return `<a class="card" href="${esc(r.url)}" target="_blank" rel="noopener">
+    <div class="c-body">
+      <div class="c-title"><span class="nm">${esc(r.name)}</span>${badges}</div>
+      <div class="c-desc">${esc(r.desc) || "该仓库暂无描述"}</div>
+      ${topics ? `<div class="topics">${topics}</div>` : ""}
+      <div class="meta">
+        ${lang}
+        <span class="star"><svg viewBox="0 0 16 16"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/></svg>${r.stars}</span>
+        <span><svg viewBox="0 0 16 16"><path d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75v-.878a2.25 2.25 0 1 1 1.5 0v.878a2.25 2.25 0 0 1-2.25 2.25h-1.5v2.128a2.251 2.251 0 1 1-1.5 0V8.5h-1.5A2.25 2.25 0 0 1 3.5 6.25v-.878a2.25 2.25 0 1 1 1.5 0ZM5 3.25a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Zm6.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm-3 8.75a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Z"/></svg>${r.forks}</span>
+        <span>更新于 ${ago(r.updated)}</span>
+      </div>
+    </div>
+  </a>`;
+}
+
+/* ===== 渲染 ===== */
+function render(){
+  let list = state.data.repos.slice();
+  if(state.hideFork) list = list.filter(r => !r.fork);
+  if(state.lang) list = list.filter(r => r.lang === state.lang);
+  if(state.q){
+    const q = state.q.toLowerCase();
+    list = list.filter(r =>
+      r.name.toLowerCase().includes(q) ||
+      (r.desc||"").toLowerCase().includes(q) ||
+      (r.topics||[]).some(t => t.toLowerCase().includes(q)) ||
+      (r.lang||"").toLowerCase().includes(q)
+    );
+  }
+  const cmp = {
+    updated: (a,b) => b.updated.localeCompare(a.updated),
+    created: (a,b) => b.created.localeCompare(a.created),
+    stars:   (a,b) => b.stars - a.stars || b.updated.localeCompare(a.updated),
+    name:    (a,b) => a.name.localeCompare(b.name),
+    size:    (a,b) => b.size - a.size
+  }[state.sort];
+  list.sort(cmp);
+
+  $("#grid").innerHTML = list.map(card).join("");
+  $("#grid").className = "grid" + (state.view === "list" ? " list" : "");
+  $("#empty").classList.toggle("hidden", list.length > 0);
+  $("#vGrid").classList.toggle("on", state.view === "grid");
+  $("#vList").classList.toggle("on", state.view === "list");
+}
+
+/* ===== 交互 ===== */
+let timer;
+$("#q").oninput = e => { clearTimeout(timer); timer = setTimeout(() => { state.q = e.target.value.trim(); render(); }, 120); };
+$("#sort").onchange = e => { state.sort = e.target.value; render(); };
+$("#hideFork").onclick = e => {
+  state.hideFork = !state.hideFork;
+  e.currentTarget.classList.toggle("on", state.hideFork);
+  render();
+};
+$("#vGrid").onclick = () => { state.view = "grid"; render(); };
+$("#vList").onclick = () => { state.view = "list"; render(); };
+
+/* ===== 同步（运行时调 GitHub API） ===== */
+const toast = (msg) => {
+  const t = $("#toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("show"), 2400);
+};
+$("#refreshBtn").onclick = async () => {
+  const btn = $("#refreshBtn");
+  btn.disabled = true; btn.textContent = "同步中…";
+  try{
+    const res = await fetch(`https://api.github.com/users/${state.data.profile.login}/repos?per_page=100&sort=updated`, {cache:"no-store"});
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    const raw = await res.json();
+    const repos = raw.map(r => ({
+      name:r.name, desc:r.description||"", lang:r.language, stars:r.stargazers_count,
+      forks:r.forks_count, fork:r.fork, archived:r.archived, topics:r.topics||[],
+      updated:(r.updated_at||"").slice(0,10), created:(r.created_at||"").slice(0,10),
+      homepage:(r.homepage||"").trim(), url:r.html_url, size:r.size,
+      branch:r.default_branch, license:r.license?r.license.spdx_id:null, open_issues:r.open_issues_count
+    }));
+    state.data = {
+      profile:{ login:raw[0].owner.login, avatar:raw[0].owner.avatar_url, url:raw[0].owner.html_url },
+      repos, generated:new Date().toISOString().slice(0,10)
+    };
+    localStorage.setItem("gh-repos-cache", JSON.stringify(state.data));
+    renderStats(); renderLangbar(); render();
+    toast("已同步 " + repos.length + " 个仓库");
+  }catch(err){
+    toast("同步失败：" + err.message + "（已显示内置快照）");
+  }finally{
+    btn.disabled = false;
+    btn.innerHTML = '<svg viewBox="0 0 16 16"><path d="M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z"/></svg> 同步';
+  }
+};
+
+/* ===== 启动 ===== */
+(() => {
+  const cached = localStorage.getItem("gh-repos-cache");
+  if(cached){ try{ state.data = JSON.parse(cached); }catch(e){} }
+  initTheme();
+  renderStats(); renderLangbar(); render();
+})();
+</script>
+</body>
+</html>
