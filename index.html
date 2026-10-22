@@ -372,6 +372,7 @@ const fmtSize = n => {
 };
 const fmtDate = d => d ? d.replace(/-/g, ".") : "—";
 const slugId = () => "prod-" + Date.now().toString(36);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 const toast = (msg, ms) => {
   const t = $("#toast");
   t.textContent = msg; t.classList.add("show");
@@ -775,7 +776,7 @@ function renderPubForm() {
       <div class="filepick" id="fPick">点击选择文件（可多选，单个最大 2 GB）</div>
       <input type="file" id="fFiles" multiple class="hidden">
       <div id="fUpList"></div>
-      <div class="hint">GitHub Release 不支持中文文件名：中文命名的文件会自动改用安全文件名上传（下载者看到的显示名不变）。</div>
+      <div class="hint">浏览器直传失败时会自动切换为「GitHub 网页上传」模式（更稳，适合大文件）；GitHub Release 不支持中文文件名，中文命名的文件会自动改用安全文件名上传（下载者看到的显示名不变）。</div>
     </div>
     <div class="plog" id="fLog"></div>
     <div class="btn-row"><button class="ibtn primary" id="fGo">发布产品</button></div>`;
@@ -808,6 +809,49 @@ function log(html) {
   if (el) el.innerHTML += "<div>" + html + "</div>";
 }
 
+/* 浏览器直传（带重试）——受网络影响可能失败，失败后走网页上传兜底 */
+async function uploadWithRetry(releaseId, file, onprog, logFn) {
+  let lastErr = null;
+  for (let a = 1; a <= 3; a++) {
+    try {
+      return await uploadAsset(releaseId, file, onprog);
+    } catch (e) {
+      lastErr = e;
+      if (a < 3) { logFn("网络波动，第 " + (a + 1) + " 次尝试…"); await sleep(2500 * a); }
+    }
+  }
+  throw lastErr;
+}
+
+/* 网页上传兜底面板：Release 已建好，引导用户去 GitHub 官方网页拖文件，回来点按钮扫描完成 */
+function manualPanel(container, tag, onAssets) {
+  const editUrl = "https://github.com/" + REPO_FULL + "/releases/edit/" + encodeURIComponent(tag);
+  container.innerHTML =
+    '<div class="notice warn">' +
+    '<b>浏览器直传失败</b>——GitHub 的文件上传接口（uploads.github.com）不允许站点跨域直连，受网络环境影响较大。<br>' +
+    'Release 已经创建好，改用 GitHub 官方网页上传即可，全程约一分钟：<br>' +
+    '① 点 <a href="' + editUrl + '" target="_blank" rel="noopener"><b>打开 Release 编辑页</b></a>（新标签页）<br>' +
+    '② 把安装包 / 说明文件拖到「Attach binaries」虚线框里，等上传进度条走完<br>' +
+    '③ 回到本页，点下面按钮完成发布' +
+    '</div>' +
+    '<div class="btn-row"><button class="ibtn primary" id="mScanBtn">我已传完，完成发布</button></div>';
+  container.querySelector("#mScanBtn").onclick = async () => {
+    const btn = container.querySelector("#mScanBtn");
+    btn.disabled = true; btn.textContent = "扫描中…";
+    try {
+      const rel = await gh("GET", "/repos/" + REPO_FULL + "/releases/tags/" + encodeURIComponent(tag));
+      if (!rel.assets || !rel.assets.length) {
+        btn.disabled = false; btn.textContent = "我已传完，完成发布";
+        return toast("该 Release 下还没有文件，请先在 GitHub 网页完成上传");
+      }
+      await onAssets(rel.assets);
+    } catch (e) {
+      btn.disabled = false; btn.textContent = "我已传完，完成发布";
+      toast("扫描失败：" + e.message, 3600);
+    }
+  };
+}
+
 async function doPublish() {
   const name = $("#fName").value.trim();
   const version = $("#fVer").value.trim();
@@ -822,24 +866,52 @@ async function doPublish() {
   btn.disabled = true; btn.textContent = "发布中…";
   $("#fLog").innerHTML = "";
 
-  try {
-    const id = slugId();
-    const tag = id + "-v" + version.replace(/[^\w.\-]/g, "");
+  const id = slugId();
+  const tag = id + "-v" + version.replace(/[^\w.\-]/g, "");
 
+  let rel;
+  try {
     log("1/3 创建 GitHub Release（tag：<b>" + esc(tag) + "</b>）…");
-    const rel = await gh("POST", "/repos/" + REPO_FULL + "/releases", {
+    rel = await gh("POST", "/repos/" + REPO_FULL + "/releases", {
       tag_name: tag,
       name: name + " v" + version,
       body: desc || tagline || name
     });
+  } catch (e) {
+    log('<span class="err">创建 Release 失败：' + esc(e.message) + "</span>");
+    toast("发布失败：" + e.message, 4200);
+    btn.disabled = false; btn.textContent = "发布产品";
+    return;
+  }
 
-    const files = [];
+  const prod = {
+    id, name, tagline, desc, version,
+    date: new Date().toISOString().slice(0, 10),
+    tag,
+    links: {repo, homepage: home},
+    files: [], hidden: false
+  };
+  const finish = async files => {
+    log("3/3 更新站点数据…");
+    prod.files = files;
+    await commitData(d => { d.products.unshift(prod); return d; }, "发布产品：" + name + " v" + version);
+    DATA.products.unshift(prod);
+    pickedFiles = [];
+    closeAdmin();
+    toast("发布成功！GitHub Pages 刷新约需 1 分钟，已为你本地预览", 4200);
+    route();
+  };
+
+  const files = [];
+  try {
     for (let i = 0; i < pickedFiles.length; i++) {
       const u = pickedFiles[i];
       log("2/3 上传文件 <b>" + esc(u.file.name) + "</b>（" + (i + 1) + "/" + pickedFiles.length + "）…");
       const item = $("#fUpList").querySelectorAll(".upl-item")[i];
       const bar = item ? item.querySelector(".progress i") : null;
-      const asset = await uploadAsset(rel.id, u.file, p => { if (bar) bar.style.width = Math.round(p * 100) + "%"; });
+      const asset = await uploadWithRetry(rel.id, u.file,
+        p => { if (bar) bar.style.width = Math.round(p * 100) + "%"; },
+        m => log(m));
       files.push({
         name: u.file.name,
         asset: asset.name,
@@ -848,26 +920,16 @@ async function doPublish() {
         note: u.note.trim()
       });
     }
-
-    log("3/3 更新站点数据…");
-    const prod = {
-      id, name, tagline, desc, version,
-      date: new Date().toISOString().slice(0, 10),
-      tag,
-      links: {repo, homepage: home},
-      files, hidden: false
-    };
-    await commitData(d => { d.products.unshift(prod); return d; }, "发布产品：" + name + " v" + version);
-
-    DATA.products.unshift(prod);
-    pickedFiles = [];
-    closeAdmin();
-    toast("发布成功！GitHub Pages 刷新约需 1 分钟，已为你本地预览", 4200);
-    route();
+    await finish(files);
   } catch (e) {
-    log('<span class="err">发布失败：' + esc(e.message) + "</span>");
-    toast("发布失败：" + e.message, 4200);
-  } finally {
+    log('<span class="err">浏览器直传失败：' + esc(e.message) + "</span>");
+    const panel = document.createElement("div");
+    panel.style.marginTop = "14px";
+    $("#fLog").insertAdjacentElement("afterend", panel);
+    manualPanel(panel, tag, async assets => {
+      await finish(assets.map(a => ({name: a.name, asset: a.name, size: a.size, url: a.browser_download_url, note: ""})));
+    });
+    toast("已切换为网页上传模式，按黄色提示框操作即可", 4200);
     btn.disabled = false; btn.textContent = "发布产品";
   }
 }
@@ -982,6 +1044,12 @@ async function openEdit(pid) {
     const name = $("#eName").value.trim();
     const version = $("#eVer").value.trim();
     const logs = m => { $("#eLog").innerHTML += "<div>" + m + "</div>"; };
+    const saveMeta = () => commitData(d => {
+      const t = d.products.find(x => x.id === p.id);
+      Object.assign(t, {name, version, tagline: $("#eTag").value.trim(), desc: $("#eDesc").value.trim(),
+        links: {repo: $("#eRepo").value.trim(), homepage: $("#eHome").value.trim()}});
+      return d;
+    }, "更新产品：" + name);
     try {
       if (newFiles.length) {
         const newTag = p.id + "-v" + (version || "0").replace(/[^\w.\-]/g, "");
@@ -989,38 +1057,53 @@ async function openEdit(pid) {
         const rel = await gh("POST", "/repos/" + REPO_FULL + "/releases", {
           tag_name: newTag, name: name + " v" + version, body: $("#eDesc").value.trim()
         });
-        const files = [];
-        for (let i = 0; i < newFiles.length; i++) {
-          logs("上传 " + esc(newFiles[i].name) + "…");
-          const item = $("#eUpList").querySelectorAll(".upl-item")[i];
-          const bar = item ? item.querySelector(".progress i") : null;
-          const asset = await uploadAsset(rel.id, newFiles[i], pr => { if (bar) bar.style.width = Math.round(pr * 100) + "%"; });
-          files.push({name: newFiles[i].name, asset: asset.name, size: asset.size, url: asset.browser_download_url, note: ""});
-        }
+        const finishEdit = async files => {
+          try {
+            const old = await gh("GET", "/repos/" + REPO_FULL + "/releases/tags/" + encodeURIComponent(p.tag));
+            if (old.id) await gh("DELETE", "/repos/" + REPO_FULL + "/releases/" + old.id);
+          } catch (e) {}
+          await commitData(d => {
+            const t = d.products.find(x => x.id === p.id);
+            Object.assign(t, {name, version, tagline: $("#eTag").value.trim(), desc: $("#eDesc").value.trim(),
+              links: {repo: $("#eRepo").value.trim(), homepage: $("#eHome").value.trim()},
+              tag: newTag, files, date: new Date().toISOString().slice(0, 10)});
+            return d;
+          }, "更新产品（新版本）：" + name);
+          Object.assign(p, {name, version, tagline: $("#eTag").value.trim(), tag: newTag, files});
+          closeAdmin();
+          toast("已保存，线上约 1 分钟后生效");
+          route();
+        };
         try {
-          const old = await gh("GET", "/repos/" + REPO_FULL + "/releases/tags/" + encodeURIComponent(p.tag));
-          if (old.id) await gh("DELETE", "/repos/" + REPO_FULL + "/releases/" + old.id);
-        } catch (e) {}
-        await commitData(d => {
-          const t = d.products.find(x => x.id === p.id);
-          Object.assign(t, {name, version, tagline: $("#eTag").value.trim(), desc: $("#eDesc").value.trim(),
-            links: {repo: $("#eRepo").value.trim(), homepage: $("#eHome").value.trim()},
-            tag: newTag, files, date: new Date().toISOString().slice(0, 10)});
-          return d;
-        }, "更新产品（新版本）：" + name);
-        Object.assign(p, {name, version, tagline: $("#eTag").value.trim(), tag: newTag, files});
+          const files = [];
+          for (let i = 0; i < newFiles.length; i++) {
+            logs("上传 " + esc(newFiles[i].name) + "…");
+            const item = $("#eUpList").querySelectorAll(".upl-item")[i];
+            const bar = item ? item.querySelector(".progress i") : null;
+            const asset = await uploadWithRetry(rel.id, newFiles[i],
+              pr => { if (bar) bar.style.width = Math.round(pr * 100) + "%"; },
+              m => logs(m));
+            files.push({name: newFiles[i].name, asset: asset.name, size: asset.size, url: asset.browser_download_url, note: ""});
+          }
+          await finishEdit(files);
+        } catch (e) {
+          logs('<span class="err">浏览器直传失败：' + esc(e.message) + "</span>");
+          const panel = document.createElement("div");
+          panel.style.marginTop = "14px";
+          $("#eLog").insertAdjacentElement("afterend", panel);
+          manualPanel(panel, newTag, async assets => {
+            await finishEdit(assets.map(a => ({name: a.name, asset: a.name, size: a.size, url: a.browser_download_url, note: ""})));
+          });
+          toast("已切换为网页上传模式，按黄色提示框操作即可", 4200);
+          btn.disabled = false; btn.textContent = "保存";
+        }
       } else {
-        await commitData(d => {
-          const t = d.products.find(x => x.id === p.id);
-          Object.assign(t, {name, version, tagline: $("#eTag").value.trim(), desc: $("#eDesc").value.trim(),
-            links: {repo: $("#eRepo").value.trim(), homepage: $("#eHome").value.trim()}});
-          return d;
-        }, "更新产品：" + name);
+        await saveMeta();
         Object.assign(p, {name, version, tagline: $("#eTag").value.trim()});
+        closeAdmin();
+        toast("已保存，线上约 1 分钟后生效");
+        route();
       }
-      closeAdmin();
-      toast("已保存，线上约 1 分钟后生效");
-      route();
     } catch (e) {
       logs('<span class="err">失败：' + esc(e.message) + "</span>");
       toast("保存失败：" + e.message, 3600);
