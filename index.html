@@ -606,7 +606,7 @@ function showDetail(p) {
   $("#toolbar").classList.add("hidden");
   $("#detailView").classList.remove("hidden");
 
-  /* giscus 按「页面标题」关联讨论，务必先改标题再注入 */
+  /* 评论按产品 id 关联（与标题解耦）；这里仍同步页面标题便于浏览 */
   document.title = p.name + " · " + ((DATA.site && DATA.site.title) || "产品发布中心");
 
   const links = [];
@@ -648,12 +648,12 @@ function showDetail(p) {
   fillAllDl();               // 先用本地缓存立即显示，避免一直停在「…」
   fetchDl().then(fillAllDl); // 拉取成功后用真实值校准
 
-  injectGiscus();
+  injectGiscus(p);
   window.scrollTo(0, 0);
 }
 
 /* ================= giscus ================= */
-function injectGiscus() {
+function injectGiscus(p) {
   const box = $("#giscusBox");
   box.innerHTML = "";
   const s = document.createElement("script");
@@ -662,7 +662,9 @@ function injectGiscus() {
   s.setAttribute("data-repo-id", GISCUS.repoId);
   s.setAttribute("data-category", GISCUS.category);
   s.setAttribute("data-category-id", GISCUS.categoryId);
-  s.setAttribute("data-mapping", "title");
+  /* 按「产品 id」关联讨论：产品改名、改版本、站点改标题都不会丢评论 */
+  s.setAttribute("data-mapping", "specific");
+  s.setAttribute("data-term", p.id);
   s.setAttribute("data-strict", "1");
   s.setAttribute("data-reactions-enabled", "1");
   s.setAttribute("data-emit-metadata", "0");
