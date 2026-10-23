@@ -26,7 +26,8 @@
      "note": ""
     }
    ],
-   "hidden": false
+   "hidden": false,
+   "discussion": 2
   },
   {
    "id": "prod-mvjc2pmb",
@@ -49,7 +50,8 @@
      "note": ""
     }
    ],
-   "hidden": false
+   "hidden": false,
+   "discussion": 1
   },
   {
    "id": "demo-hello",

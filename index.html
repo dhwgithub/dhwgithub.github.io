@@ -371,6 +371,27 @@ const fmtSize = n => {
   return (n/1073741824).toFixed(2) + " GB";
 };
 const fmtDate = d => d ? d.replace(/-/g, ".") : "—";
+/* GraphQL 调用（管理员操作用） */
+async function gqlGh(query, variables) {
+  const res = await fetch("https://api.github.com/graphql", {
+    method: "POST",
+    headers: {"Authorization": "Bearer " + state.token, "Content-Type": "application/json"},
+    body: JSON.stringify({query, variables: variables || {}})
+  });
+  const j = await res.json().catch(() => ({}));
+  if (j.errors) throw new Error(j.errors.map(e => e.message).join("; "));
+  return j.data;
+}
+
+/* 为新产品预建评论区讨论（需 token 具备 Discussions 读写权限；失败不阻塞发布，
+   此时评论功能会等 GitHub 搜索索引生效后按产品 id 关联） */
+async function provisionDiscussion(prod) {
+  const data = await gqlGh(
+    "mutation($r:ID!,$c:ID!,$t:String!){createDiscussion(input:{repositoryId:$r,categoryId:$c,title:$t,body:$t}){discussion{number}}}",
+    {r: GISCUS.repoId, c: GISCUS.categoryId, t: prod.id});
+  prod.discussion = data.createDiscussion.discussion.number;
+}
+
 const slugId = () => "prod-" + Date.now().toString(36);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const toast = (msg, ms) => {
@@ -662,9 +683,15 @@ function injectGiscus(p) {
   s.setAttribute("data-repo-id", GISCUS.repoId);
   s.setAttribute("data-category", GISCUS.category);
   s.setAttribute("data-category-id", GISCUS.categoryId);
-  /* 按「产品 id」关联讨论：产品改名、改版本、站点改标题都不会丢评论 */
-  s.setAttribute("data-mapping", "specific");
-  s.setAttribute("data-term", p.id);
+  /* 优先按「讨论号」直连（不依赖 GitHub 搜索索引，立即生效）；
+     无讨论号的老数据回退到按产品 id 搜索关联 */
+  if (p.discussion) {
+    s.setAttribute("data-mapping", "number");
+    s.setAttribute("data-term", String(p.discussion));
+  } else {
+    s.setAttribute("data-mapping", "specific");
+    s.setAttribute("data-term", p.id);
+  }
   s.setAttribute("data-strict", "1");
   s.setAttribute("data-reactions-enabled", "1");
   s.setAttribute("data-emit-metadata", "0");
@@ -928,6 +955,13 @@ async function doPublish() {
   const finish = async files => {
     log("3/3 更新站点数据…");
     prod.files = files;
+    try {
+      await provisionDiscussion(prod);
+      log("评论区已预建（Discussion #" + prod.discussion + "）");
+    } catch (e) {
+      log('<span class="err">评论区预建跳过：' + esc(e.message) +
+          "（不影响发布；若想发布即开评论，请给 token 增加 Discussions 读写权限）</span>");
+    }
     await commitData(d => { d.products.unshift(prod); return d; }, "发布产品：" + name + " v" + version);
     DATA.products.unshift(prod);
     pickedFiles = [];
