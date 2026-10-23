@@ -488,14 +488,18 @@ async function loadData() {
 }
 
 /* 从仓库拉取最新数据：这样站点托管在任何平台，发布新产品都能自动同步 */
+/* 实时源优先（raw 无缓存）；jsDelivr 国内更快走兜底，但可能有 CDN 缓存延迟 */
 const REMOTE_DATA = [
-  "https://cdn.jsdelivr.net/gh/" + REPO_FULL + "@main/" + DATA_PATH,
-  "https://raw.githubusercontent.com/" + REPO_FULL + "/main/" + DATA_PATH
+  "https://raw.githubusercontent.com/" + REPO_FULL + "/main/" + DATA_PATH,
+  "https://cdn.jsdelivr.net/gh/" + REPO_FULL + "@main/" + DATA_PATH
 ];
 async function syncFromRemote() {
   for (const url of REMOTE_DATA) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 6000);
     try {
-      const r = await fetch(url + "?t=" + Date.now(), {cache: "no-store"});
+      const r = await fetch(url + "?t=" + Date.now(), {cache: "no-store", signal: ctl.signal});
+      clearTimeout(timer);
       if (!r.ok) continue;
       const d = await r.json();
       if (d && Array.isArray(d.products) && JSON.stringify(d) !== JSON.stringify(DATA)) {
@@ -503,7 +507,7 @@ async function syncFromRemote() {
         if (typeof route === "function") route();
       }
       return;
-    } catch (e) { /* 换下一个源 */ }
+    } catch (e) { clearTimeout(timer); /* 换下一个源 */ }
   }
 }
 
