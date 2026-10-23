@@ -6,6 +6,29 @@
  },
  "products": [
   {
+   "id": "prod-mvk8ljhp",
+   "name": "办公多功能箱",
+   "tagline": "Windows办公工具箱",
+   "desc": "通用自定义工具箱",
+   "version": "1.1.0",
+   "date": "2026-10-23",
+   "tag": "prod-mvk8ljhp-v1.1.0",
+   "links": {
+    "repo": "",
+    "homepage": ""
+   },
+   "files": [
+    {
+     "name": "iTools.zip",
+     "asset": "iTools.zip",
+     "size": 24599249,
+     "url": "https://github.com/dhwgithub/dhwgithub.github.io/releases/download/prod-mvk8ljhp-v1.1.0/iTools.zip",
+     "note": ""
+    }
+   ],
+   "hidden": false
+  },
+  {
    "id": "prod-mvjc2pmb",
    "name": "私人定制",
    "tagline": "本地记账应用",
