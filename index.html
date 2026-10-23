@@ -484,6 +484,27 @@ async function loadData() {
   } catch (e) {
     DATA = {site: {title: "产品发布中心", owner: OWNER}, products: []};
   }
+  syncFromRemote();   // 镜像站点（非 GitHub Pages）靠它保持与仓库同步
+}
+
+/* 从仓库拉取最新数据：这样站点托管在任何平台，发布新产品都能自动同步 */
+const REMOTE_DATA = [
+  "https://cdn.jsdelivr.net/gh/" + REPO_FULL + "@main/" + DATA_PATH,
+  "https://raw.githubusercontent.com/" + REPO_FULL + "/main/" + DATA_PATH
+];
+async function syncFromRemote() {
+  for (const url of REMOTE_DATA) {
+    try {
+      const r = await fetch(url + "?t=" + Date.now(), {cache: "no-store"});
+      if (!r.ok) continue;
+      const d = await r.json();
+      if (d && Array.isArray(d.products) && JSON.stringify(d) !== JSON.stringify(DATA)) {
+        DATA = d;
+        if (typeof route === "function") route();
+      }
+      return;
+    } catch (e) { /* 换下一个源 */ }
+  }
 }
 
 async function fetchDl(force) {
