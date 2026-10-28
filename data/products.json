@@ -6,6 +6,30 @@
  },
  "products": [
   {
+   "id": "prod-mvrlgkbq",
+   "name": "本地知识库管理",
+   "tagline": "本地知识库管理页面",
+   "desc": "资源管理器形式的知识管理",
+   "version": "1.3.1",
+   "date": "2026-10-28",
+   "tag": "prod-mvrlgkbq-v1.3.1",
+   "links": {
+    "repo": "",
+    "homepage": ""
+   },
+   "files": [
+    {
+     "name": "knowledge-manager.zip",
+     "asset": "knowledge-manager.zip",
+     "size": 77395989,
+     "url": "https://github.com/dhwgithub/dhwgithub.github.io/releases/download/prod-mvrlgkbq-v1.3.1/knowledge-manager.zip",
+     "note": ""
+    }
+   ],
+   "hidden": false,
+   "discussion": 3
+  },
+  {
    "id": "prod-mvk8ljhp",
    "name": "办公多功能箱",
    "tagline": "Windows办公工具箱",
