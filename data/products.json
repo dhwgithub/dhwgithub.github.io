@@ -6,6 +6,30 @@
  },
  "products": [
   {
+   "id": "prod-mvtb6uty",
+   "name": "本地项目管理",
+   "tagline": "本地项目管理",
+   "desc": "零依赖、纯本地、数据在自己硬盘上。",
+   "version": "1.3.8",
+   "date": "2026-10-29",
+   "tag": "prod-mvtb6uty-v1.3.8",
+   "links": {
+    "repo": "",
+    "homepage": ""
+   },
+   "files": [
+    {
+     "name": "iProject.zip",
+     "asset": "iProject.zip",
+     "size": 37113,
+     "url": "https://github.com/dhwgithub/dhwgithub.github.io/releases/download/prod-mvtb6uty-v1.3.8/iProject.zip",
+     "note": ""
+    }
+   ],
+   "hidden": false,
+   "discussion": 4
+  },
+  {
    "id": "prod-mvrlgkbq",
    "name": "本地知识库管理",
    "tagline": "本地知识库管理页面",
