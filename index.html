@@ -171,6 +171,24 @@ main{padding:26px 0 70px;min-height:55vh}
   font-size:10.5px;padding:2px 8px;border-radius:999px;background:var(--chip);color:var(--fg-muted);
   border:1px solid var(--border);flex-shrink:0;font-weight:500;
 }
+/* 历史版本提示 + 更新记录 */
+.farch{font-size:12.5px;color:var(--fg-muted);margin-top:12px;padding-top:11px;border-top:1px dashed var(--border-soft)}
+.farch b{color:var(--fg);font-weight:650}
+.hrow{display:flex;gap:14px;padding:12px 0;border-top:1px solid var(--border-soft)}
+.hrow:first-child{border-top:0;padding-top:0}
+.hrow .hv{
+  flex-shrink:0;min-width:88px;font-size:12.5px;font-weight:650;color:var(--fg);
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+}
+.hrow .hv .hnew{
+  font-size:10px;font-weight:600;padding:1px 6px;border-radius:999px;
+  background:var(--accent-soft);color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);
+}
+.hrow .hb{flex:1;min-width:0}
+.hrow .hd{font-size:12px;color:var(--fg-subtle)}
+.hrow .hd a{color:var(--accent);text-decoration:none}
+.hrow .hd a:hover{text-decoration:underline}
+.hrow .hn{font-size:13.5px;color:var(--fg);margin-top:2px;word-break:break-word}
 
 /* giscus */
 .giscus-wrap{margin-top:6px}
@@ -329,6 +347,11 @@ footer a{color:var(--accent)}
         <div id="dFiles"></div>
       </div>
 
+      <div class="section" id="dHistorySec">
+        <h2><svg viewBox="0 0 16 16"><path d="M1.75 8a6.25 6.25 0 1 1 12.5 0 6.25 6.25 0 0 1-12.5 0ZM8 3.25a.75.75 0 0 1 .75.75v3.19l2.03 1.22a.75.75 0 1 1-.76 1.29L7.62 8.28A.75.75 0 0 1 7.25 7.6V4A.75.75 0 0 1 8 3.25Z"/></svg>更新记录</h2>
+        <div id="dHistory"></div>
+      </div>
+
       <div class="section">
         <h2><svg viewBox="0 0 16 16"><path d="M1 2.75C1 1.784 1.784 1 2.75 1h10.5c.966 0 1.75.784 1.75 1.75v5.5A1.75 1.75 0 0 1 13.25 10H6.06l-2.473 2.473a.75.75 0 0 1-1.255-.382l-.25-1.24a1.75 1.75 0 0 1-.577-.481Z"/></svg>评论</h2>
         <div class="giscus-wrap"><div class="giscus" id="giscusBox"></div></div>
@@ -370,7 +393,20 @@ const fmtSize = n => {
   if (n < 1073741824) return (n/1048576).toFixed(1) + " MB";
   return (n/1073741824).toFixed(2) + " GB";
 };
-const fmtDate = d => d ? d.replace(/-/g, ".") : "—";
+/* 统一成 YYYY-MM-DD（同时兼容 ISO 时间戳），再显示为 2026.11.02 */
+function normDate(d) {
+  if (!d) return "";
+  const s = String(d);
+  const m = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+  if (!m) return s.slice(0, 10);
+  return m[1] + "-" + String(m[2]).padStart(2, "0") + "-" + String(m[3]).padStart(2, "0");
+}
+const fmtDate = d => { const n = normDate(d); return n ? n.replace(/-/g, ".") : "—"; };
+/* 本地时区的今天（toISOString 是 UTC，早上 8 点前会算成前一天） */
+const todayStr = () => {
+  const d = new Date(), p = n => String(n).padStart(2, "0");
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+};
 /* GraphQL 调用（管理员操作用） */
 async function gqlGh(query, variables) {
   const res = await fetch("https://api.github.com/graphql", {
@@ -515,8 +551,16 @@ async function fetchDl(force) {
   if (dlPending) return;
   if (!force && dlMap && Date.now() - dlTime < 5 * 60 * 1000) return;
   dlPending = true;
+  const url = "/repos/" + REPO_FULL + "/releases?per_page=100";
   try {
-    const rels = await gh("GET", "/repos/" + REPO_FULL + "/releases?per_page=100", null, "");
+    let rels;
+    try {
+      /* 有 token 就用认证请求（匿名每小时只有 60 次，很容易被限流成「全 0」） */
+      rels = await gh("GET", url, null, state.token || "");
+    } catch (e) {
+      if (!state.token) throw e;
+      rels = await gh("GET", url, null, "");
+    }
     dlMap = {};
     rels.forEach(r => {
       dlMap[r.tag_name] = {};
@@ -530,19 +574,50 @@ async function fetchDl(force) {
   }
   dlPending = false;
 }
-const dlOf = (p, f) => (dlMap && dlMap[p.tag] && dlMap[p.tag][f.asset]) || 0;
-const dlTotal = p => (p.files || []).reduce((a, f) => a + dlOf(p, f), 0);
+
+/* 一个产品的全部历史版本 Release（tag 形如 prod-xxxx-v1.2.3）。
+   新版本发布会保留旧 Release，所以这里累加的是「所有版本」的下载量，
+   换版本、改文件名都不会把已有次数清零。 */
+function relTagsOf(p) {
+  if (!dlMap) return [];
+  const out = [];
+  Object.keys(dlMap).forEach(t => {
+    if (t === p.tag || (p.id && t.indexOf(p.id + "-") === 0)) out.push(t);
+  });
+  return out;
+}
+const dlOf = (p, f) => {
+  if (!dlMap || !f) return 0;
+  return relTagsOf(p).reduce((a, t) => a + ((dlMap[t] && dlMap[t][f.asset]) || 0), 0);
+};
+/* 已不在当前下载列表里的历史文件（换过文件名 / 更早的版本）的下载次数 */
+function dlArch(p) {
+  if (!dlMap) return 0;
+  const names = new Set((p.files || []).map(f => f.asset));
+  let n = 0;
+  relTagsOf(p).forEach(t => {
+    const m = dlMap[t] || {};
+    Object.keys(m).forEach(nm => { if (!names.has(nm)) n += m[nm] || 0; });
+  });
+  return n;
+}
+const dlTotal = p => (p.dlBase || 0) +
+  (p.files || []).reduce((a, f) => a + dlOf(p, f), 0) + dlArch(p);
 
 /* 按当前所在视图（详情/列表）刷新所有计数显示 */
 function fillAllDl() {
   const m = location.hash.match(/^#\/p\/([\w\-]+)/);
   const p = m ? DATA.products.find(x => x.id === m[1]) : null;
   if (p) {
-    if (dlMap) document.querySelectorAll("[data-fdl]").forEach(el => {
-      el.textContent = String(dlMap[p.tag] && dlMap[p.tag][el.dataset.fdl] || 0);
+    if (!dlMap) return;
+    document.querySelectorAll("[data-fdl]").forEach(el => {
+      const f = (p.files || []).find(x => x.asset === el.dataset.fdl);
+      el.textContent = String(dlOf(p, f));
     });
     const t = $("#dTotalDl");
-    if (t && dlMap) t.textContent = String(dlTotal(p));
+    if (t) t.textContent = String(dlTotal(p));
+    const ar = $("#dArch");
+    if (ar) ar.textContent = String(dlArch(p) + (p.dlBase || 0));
     const s = $("#s-downloads");
     if (s) s.textContent = String(visibleProducts().reduce((a, x) => a + dlTotal(x), 0));
   } else {
@@ -554,7 +629,8 @@ function fillAllDl() {
 document.addEventListener("click", e => {
   const a = e.target.closest(".dl-btn");
   if (!a || !a.dataset.tag || !a.dataset.asset) return;
-  if (dlMap && dlMap[a.dataset.tag]) {
+  if (dlMap) {
+    dlMap[a.dataset.tag] = dlMap[a.dataset.tag] || {};
     dlMap[a.dataset.tag][a.dataset.asset] = (dlMap[a.dataset.tag][a.dataset.asset] || 0) + 1;
     fillAllDl();
   }
@@ -583,7 +659,7 @@ function renderList() {
     (p.name || "").toLowerCase().includes(q) ||
     (p.tagline || "").toLowerCase().includes(q));
   const cmp = {
-    date:      (a, b) => (b.date || "").localeCompare(a.date || ""),
+    date:      (a, b) => String(b.updated || b.date || "").localeCompare(String(a.updated || a.date || "")),
     downloads: (a, b) => dlTotal(b) - dlTotal(a),
     name:      (a, b) => (a.name || "").localeCompare(b.name || "")
   }[state.sort];
@@ -600,7 +676,7 @@ function renderList() {
         </div>
       </div>
       <div class="pc-meta">
-        <span><svg viewBox="0 0 16 16"><path d="M4.75 1a.75.75 0 0 1 .75.75V3h5.5V1.75a.75.75 0 0 1 1.5 0V3h1.25c.966 0 1.75.784 1.75 1.75v8.5A1.75 1.75 0 0 1 13.75 15H3.25A1.75 1.75 0 0 1 1.5 13.25v-8.5C1.5 3.784 2.284 3 3.25 3H4V1.75A.75.75 0 0 1 4.75 1Z"/></svg>${fmtDate(p.date)}</span>
+        <span><svg viewBox="0 0 16 16"><path d="M4.75 1a.75.75 0 0 1 .75.75V3h5.5V1.75a.75.75 0 0 1 1.5 0V3h1.25c.966 0 1.75.784 1.75 1.75v8.5A1.75 1.75 0 0 1 13.75 15H3.25A1.75 1.75 0 0 1 1.5 13.25v-8.5C1.5 3.784 2.284 3 3.25 3H4V1.75A.75.75 0 0 1 4.75 1Z"/></svg>更新于 ${fmtDate(p.updated || p.date)}</span>
         <span><svg viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h8.5C13.216 0 14 .784 14 1.75v12.5A1.75 1.75 0 0 1 12.25 16h-8.5A1.75 1.75 0 0 1 2 14.25Zm9.5 3.25a.75.75 0 0 1-.75.75h-6.5a.75.75 0 0 1 0-1.5h6.5a.75.75 0 0 1 .75.75Zm0 4a.75.75 0 0 1-.75.75h-6.5a.75.75 0 0 1 0-1.5h6.5a.75.75 0 0 1 .75.75Z"/></svg>${(p.files || []).length} 个文件</span>
         <span><svg viewBox="0 0 16 16"><path d="M1.5 3.25a2.25 2.25 0 0 1 2.25-2.25h8.5a2.25 2.25 0 0 1 2.25 2.25v9a2.75 2.75 0 0 1-2.75 2.75H3a1.75 1.75 0 0 1-1.5-2.65Zm10.25-.75a.75.75 0 0 0-.75.75v8.75a1.25 1.25 0 0 0 2.5 0V3.25a.75.75 0 0 0-.75-.75Z"/></svg>${fmtSize((p.files || []).reduce((a, f) => a + (f.size || 0), 0))}</span>
         <span><svg viewBox="0 0 16 16"><path d="M1.5 8a6.5 6.5 0 1 1 11.4 4.24l1.4 1.4a.75.75 0 0 1-1.06 1.06l-1.4-1.4A6.5 6.5 0 0 1 1.5 8Zm6.5-5a5 5 0 1 0 0 10A5 5 0 0 0 8 3Z"/></svg><span data-dl="${esc(p.id)}">…</span> 次下载</span>
@@ -625,7 +701,8 @@ function fillDl(list) {
   if (s) s.textContent = dlMap ? String(total) : "—";
   document.querySelectorAll("[data-dl]").forEach(el => {
     const p = DATA.products.find(x => x.id === el.dataset.dl);
-    if (p) el.textContent = String(dlTotal(p));
+    /* 没拿到数据时保持「…」，不要显示成 0（以前限流时会整站变成 0 次下载） */
+    if (p) el.textContent = dlMap ? String(dlTotal(p)) : "…";
   });
 }
 
@@ -661,6 +738,7 @@ function showDetail(p) {
   if (p.links && p.links.homepage)
     links.push('<a class="ibtn" href="' + esc(p.links.homepage) + '" target="_blank" rel="noopener"><svg viewBox="0 0 16 16"><path d="M7.775 3.525a.75.75 0 0 0 1.06 1.06l1.25-1.25a2 2 0 1 1 2.83 2.83l-2.5 2.5a2 2 0 0 1-2.83 0 .75.75 0 0 0-1.06 1.06 3.5 3.5 0 0 0 4.95 0l2.5-2.5a3.5 3.5 0 0 0-4.95-4.95l-1.25 1.25Zm-4.69 9.64a2 2 0 0 1 0-2.83l2.5-2.5a2 2 0 0 1 2.83 0 .75.75 0 0 0 1.06-1.06 3.5 3.5 0 0 0-4.95 0l-2.5 2.5a3.5 3.5 0 0 0 4.95 4.95l1.25-1.25a.75.75 0 0 0-1.06-1.06l-1.25 1.25a2 2 0 0 1-2.83 0Z"/></svg>项目主页</a>');
 
+  const upd = p.updated || p.date;
   $("#dHead").innerHTML = `
     <div class="d-head">
       <div class="d-logo" style="background:${logoColor(p.id)}">${esc((p.name || "?").trim().charAt(0).toUpperCase())}</div>
@@ -668,7 +746,8 @@ function showDetail(p) {
         <div class="d-title">${esc(p.name)}${p.version ? ' <span class="pc-ver" style="font-size:13px">v' + esc(p.version) + "</span>" : ""}</div>
         <div class="d-sub">${esc(p.tagline || "")}</div>
         <div class="d-meta">
-          <span><svg viewBox="0 0 16 16"><path d="M4.75 1a.75.75 0 0 1 .75.75V3h5.5V1.75a.75.75 0 0 1 1.5 0V3h1.25c.966 0 1.75.784 1.75 1.75v8.5A1.75 1.75 0 0 1 13.75 15H3.25A1.75 1.75 0 0 1 1.5 13.25v-8.5C1.5 3.784 2.284 3 3.25 3H4V1.75A.75.75 0 0 1 4.75 1Z"/></svg>发布于 ${fmtDate(p.date)}</span>
+          <span><svg viewBox="0 0 16 16"><path d="M4.75 1a.75.75 0 0 1 .75.75V3h5.5V1.75a.75.75 0 0 1 1.5 0V3h1.25c.966 0 1.75.784 1.75 1.75v8.5A1.75 1.75 0 0 1 13.75 15H3.25A1.75 1.75 0 0 1 1.5 13.25v-8.5C1.5 3.784 2.284 3 3.25 3H4V1.75A.75.75 0 0 1 4.75 1Z"/></svg>更新于 ${fmtDate(upd)}</span>
+          ${p.date && normDate(p.date) !== normDate(upd) ? "<span>首发 " + fmtDate(p.date) + "</span>" : ""}
           <span><svg viewBox="0 0 16 16"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/></svg><span id="dTotalDl">…</span> 次下载</span>
           <span><svg viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h8.5C13.216 0 14 .784 14 1.75v12.5A1.75 1.75 0 0 1 12.25 16h-8.5A1.75 1.75 0 0 1 2 14.25Z"/></svg>${(p.files || []).length} 个文件 · ${fmtSize((p.files || []).reduce((a, f) => a + (f.size || 0), 0))}</span>
         </div>
@@ -691,11 +770,40 @@ function showDetail(p) {
       </a>
     </div>`).join("") || '<div class="d-desc" style="color:var(--fg-muted)">该产品暂未上传文件</div>';
 
+  const arch = dlArch(p) + (p.dlBase || 0);
+  if (arch > 0) $("#dFiles").insertAdjacentHTML("beforeend",
+    '<div class="farch">另有历史版本文件下载 <b id="dArch">' + arch + '</b> 次（已计入上方总次数）</div>');
+
+  renderHistory(p);
+
   fillAllDl();               // 先用本地缓存立即显示，避免一直停在「…」
-  fetchDl().then(fillAllDl); // 拉取成功后用真实值校准
+  fetchDl().then(() => { fillAllDl(); renderHistory(p); }); // 拉取成功后用真实值校准
 
   injectGiscus(p);
   window.scrollTo(0, 0);
+}
+
+/* 更新记录：按日期倒序展示每个版本的版本号 / 日期 / 版本说明 */
+function renderHistory(p) {
+  const box = $("#dHistory");
+  if (!box) return;
+  const hist = (Array.isArray(p.history) ? p.history.slice() : [])
+    .filter(h => h && (h.version || h.note))
+    .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+  if (!hist.length) {
+    box.innerHTML = '<div class="d-desc" style="color:var(--fg-muted)">暂无更新记录。管理员在「编辑」里填写版本说明后，这里会按版本列出历史。</div>';
+    return;
+  }
+  box.innerHTML = hist.map((h, i) => `
+    <div class="hrow">
+      <div class="hv">v${esc(h.version || "—")}${i === 0 ? '<span class="hnew">最新</span>' : ""}</div>
+      <div class="hb">
+        <div class="hd">${fmtDate(h.date)}${h.tag && h.tag !== p.tag && (!dlMap || dlMap[h.tag])
+          ? ' · <a href="https://github.com/' + REPO_FULL + "/releases/tag/" + encodeURIComponent(h.tag) + '" target="_blank" rel="noopener">该版本安装包</a>'
+          : ""}</div>
+        <div class="hn">${h.note ? esc(h.note).replace(/\n/g, "<br>") : '<span style="color:var(--fg-subtle)">（未填写版本说明）</span>'}</div>
+      </div>
+    </div>`).join("");
 }
 
 /* ================= giscus ================= */
@@ -853,6 +961,7 @@ function renderPubForm() {
       <div class="field"><label>一句话简介</label><input type="text" id="fTag" placeholder="显示在卡片上的一句话"></div>
     </div>
     <div class="field"><label>产品说明</label><textarea id="fDesc" placeholder="功能介绍、安装步骤、系统要求、注意事项……（支持换行，链接自动识别）"></textarea></div>
+    <div class="field"><label>本次更新内容（显示在「更新记录」里）</label><textarea id="fNote" style="min-height:76px" placeholder="例如：&#10;- 修复导出 CSV 中文乱码&#10;- 新增任务批量删除"></textarea></div>
     <div class="frow2">
       <div class="field"><label>源码仓库链接</label><input type="url" id="fRepo" placeholder="https://github.com/…（可留空）"></div>
       <div class="field"><label>项目主页链接</label><input type="url" id="fHome" placeholder="https://…（可留空）"></div>
@@ -972,10 +1081,15 @@ async function doPublish() {
 
   const prod = {
     id, name, tagline, desc, version,
-    date: new Date().toISOString().slice(0, 10),
+    date: todayStr(),
+    updated: todayStr(),
     tag,
     links: {repo, homepage: home},
-    files: [], hidden: false
+    files: [], hidden: false,
+    history: [{
+      version, date: todayStr(), tag,
+      note: ($("#fNote") && $("#fNote").value.trim()) || ""
+    }]
   };
   const finish = async files => {
     log("3/3 更新站点数据…");
@@ -1045,12 +1159,25 @@ async function commitData(mutate, message) {
   return updated;
 }
 
-/* ---------- 产品管理列表 ---------- */
-function renderManageList() {
+/* 往更新记录里追加一条；同版本再次保存时只更新说明，不会出现重复行 */
+function bumpHistory(hist, version, date, note, tag) {
+  const list = (Array.isArray(hist) ? hist : []).filter(h => h && (h.version || h.note)).map(h => Object.assign({}, h));
+  const i = version ? list.findIndex(h => h.version === version) : -1;
+  if (i >= 0) {
+    if (note) list[i].note = note;
+    if (tag) list[i].tag = tag;
+    if (!list[i].date) list[i].date = date;
+  } else {
+    list.push({version: version || "", date: date, note: note || "", tag: tag || ""});
+  }
+  return list;
+}
+
+/* ---------- 产品管理列表 ---------- */function renderManageList() {
   const el = $("#mList");
   el.innerHTML = DATA.products.map(p => `
     <div class="mrow">
-      <div class="mn">${esc(p.name)} <small>v${esc(p.version)} · ${(p.files || []).length} 个文件 · ${fmtDate(p.date)}</small></div>
+      <div class="mn">${esc(p.name)} <small>v${esc(p.version)} · ${(p.files || []).length} 个文件 · ${fmtDate(p.updated || p.date)}</small></div>
       ${p.hidden ? '<span class="tag-off">已下架</span>' : ""}
       <button class="ibtn" data-edit="${esc(p.id)}" style="height:30px;padding:0 10px;font-size:12.5px">编辑</button>
       <button class="ibtn" data-hide="${esc(p.id)}" style="height:30px;padding:0 10px;font-size:12.5px">${p.hidden ? "上架" : "下架"}</button>
@@ -1072,12 +1199,17 @@ function renderManageList() {
 
   el.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
     const p = DATA.products.find(x => x.id === b.dataset.del);
-    if (!confirm('确定删除「' + p.name + "」？\n\n将同时删除其 GitHub Release（下载文件）与站点数据，评论讨论保留。")) return;
+    if (!confirm('确定删除「' + p.name + "」？\n\n将同时删除其全部历史版本 Release（下载文件）与站点数据，评论讨论保留。")) return;
     b.disabled = true;
     try {
       try {
-        const rel = await gh("GET", "/repos/" + REPO_FULL + "/releases/tags/" + encodeURIComponent(p.tag));
-        if (rel.id) await gh("DELETE", "/repos/" + REPO_FULL + "/releases/" + rel.id);
+        /* 历史版本 Release 也一并清理（tag 形如 <产品id>-v<版本>） */
+        const rels = await gh("GET", "/repos/" + REPO_FULL + "/releases?per_page=100");
+        for (const r of rels) {
+          if (r.tag_name === p.tag || (p.id && r.tag_name.indexOf(p.id + "-") === 0)) {
+            await gh("DELETE", "/repos/" + REPO_FULL + "/releases/" + r.id);
+          }
+        }
       } catch (e) { /* release 可能已不存在 */ }
       await commitData(d => {
         d.products = d.products.filter(x => x.id !== p.id);
@@ -1108,6 +1240,16 @@ async function openEdit(pid) {
       <div class="field"><label>一句话简介</label><input type="text" id="eTag" value="${esc(p.tagline || "")}"></div>
     </div>
     <div class="field"><label>产品说明</label><textarea id="eDesc">${esc(p.desc || "")}</textarea></div>
+    <div class="field">
+      <label>本次更新内容（显示在「更新记录」里）</label>
+      <textarea id="eNote" style="min-height:76px" placeholder="例如：&#10;- 修复导出 CSV 中文乱码&#10;- 新增任务批量删除"></textarea>
+      <div class="hint">留空则沿用该版本原有的说明；升版本号时建议写清楚这次改了什么。</div>
+    </div>
+    <div class="field">
+      <label>历史累计下载（可选，补录用）</label>
+      <input type="text" id="eBase" value="${esc(p.dlBase || "")}" placeholder="留空即 0">
+      <div class="hint">只用于补回早期版本已丢失的下载量（例如换版本时误删了旧 Release），会叠加到当前统计上。</div>
+    </div>
     <div class="frow2">
       <div class="field"><label>源码仓库链接</label><input type="url" id="eRepo" value="${esc((p.links || {}).repo || "")}"></div>
       <div class="field"><label>项目主页链接</label><input type="url" id="eHome" value="${esc((p.links || {}).homepage || "")}"></div>
@@ -1139,35 +1281,47 @@ async function openEdit(pid) {
     btn.disabled = true; btn.textContent = "保存中…";
     const name = $("#eName").value.trim();
     const version = $("#eVer").value.trim();
+    const tagline = $("#eTag").value.trim();
+    const desc = $("#eDesc").value.trim();
+    const note = $("#eNote") ? $("#eNote").value.trim() : "";
+    const dlBase = Math.max(0, parseInt(($("#eBase") && $("#eBase").value.trim()) || "0", 10) || 0);
+    const links = {repo: $("#eRepo").value.trim(), homepage: $("#eHome").value.trim()};
+    const today = todayStr();
     const logs = m => { $("#eLog").innerHTML += "<div>" + m + "</div>"; };
-    const saveMeta = () => commitData(d => {
-      const t = d.products.find(x => x.id === p.id);
-      Object.assign(t, {name, version, tagline: $("#eTag").value.trim(), desc: $("#eDesc").value.trim(),
-        links: {repo: $("#eRepo").value.trim(), homepage: $("#eHome").value.trim()}});
-      return d;
-    }, "更新产品：" + name);
+    const commitEdit = (extra, msg) => {
+      const hist = bumpHistory(p.history, version, today, note, extra.tag || "");
+      const patch = Object.assign({name, version, tagline, desc, links, dlBase,
+        updated: today, history: hist}, extra);
+      return commitData(d => {
+        const t = d.products.find(x => x.id === p.id);
+        Object.assign(t, patch);
+        return d;
+      }, msg).then(() => {
+        Object.assign(p, patch);   // 本地立即生效，不用刷新页面等缓存
+        dlTime = 0;                // 下次渲染强制重拉下载计数（新 Release 要重新统计）
+        return patch;
+      });
+    };
     try {
       if (newFiles.length) {
         const newTag = p.id + "-v" + (version || "0").replace(/[^\w.\-]/g, "");
         logs("创建新 Release（" + esc(newTag) + "）…");
-        const rel = await gh("POST", "/repos/" + REPO_FULL + "/releases", {
-          tag_name: newTag, name: name + " v" + version, body: $("#eDesc").value.trim()
-        });
+        let rel;
+        try {
+          rel = await gh("POST", "/repos/" + REPO_FULL + "/releases", {
+            tag_name: newTag, name: name + " v" + version, body: desc
+          });
+        } catch (e) {
+          /* 同一版本重复发布：复用已存在的 Release，不再报错 */
+          if (!/already_exists/i.test(e.message)) throw e;
+          rel = await gh("GET", "/repos/" + REPO_FULL + "/releases/tags/" + encodeURIComponent(newTag));
+          logs("该版本 Release 已存在，直接复用");
+        }
         const finishEdit = async files => {
-          try {
-            const old = await gh("GET", "/repos/" + REPO_FULL + "/releases/tags/" + encodeURIComponent(p.tag));
-            if (old.id) await gh("DELETE", "/repos/" + REPO_FULL + "/releases/" + old.id);
-          } catch (e) {}
-          await commitData(d => {
-            const t = d.products.find(x => x.id === p.id);
-            Object.assign(t, {name, version, tagline: $("#eTag").value.trim(), desc: $("#eDesc").value.trim(),
-              links: {repo: $("#eRepo").value.trim(), homepage: $("#eHome").value.trim()},
-              tag: newTag, files, date: new Date().toISOString().slice(0, 10)});
-            return d;
-          }, "更新产品（新版本）：" + name);
-          Object.assign(p, {name, version, tagline: $("#eTag").value.trim(), tag: newTag, files});
+          /* 旧版本 Release 不再删除：保留历史安装包 + 该版本的下载次数 */
+          await commitEdit({tag: newTag, files}, "更新产品（新版本）：" + name + " v" + version);
           closeAdmin();
-          toast("已保存，线上约 1 分钟后生效");
+          toast("已保存 v" + version + "，线上约 1 分钟后生效", 3600);
           route();
         };
         try {
@@ -1194,8 +1348,7 @@ async function openEdit(pid) {
           btn.disabled = false; btn.textContent = "保存";
         }
       } else {
-        await saveMeta();
-        Object.assign(p, {name, version, tagline: $("#eTag").value.trim()});
+        await commitEdit({}, "更新产品：" + name + " v" + version);
         closeAdmin();
         toast("已保存，线上约 1 分钟后生效");
         route();
