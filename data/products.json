@@ -3,8 +3,8 @@
   "title": "dhwgithub 产品发布中心",
   "subtitle": "独立开发的软件产品 · 安装包下载 · 使用说明 · 用户评论",
   "owner": "dhwgithub",
-  "rev": 1,
-  "revTime": "2026-11-02T05:54:00Z"
+  "rev": 2,
+  "revTime": "2026-11-02T06:02:58.018Z"
  },
  "products": [
   {
@@ -63,7 +63,7 @@
    ],
    "hidden": false,
    "discussion": 3,
-   "updated": "2026-10-28",
+   "updated": "2026-11-02",
    "history": [
     {
      "version": "1.5.3",
@@ -71,7 +71,8 @@
      "tag": "prod-mvrlgkbq-v1.5.3",
      "note": ""
     }
-   ]
+   ],
+   "dlBase": 8
   },
   {
    "id": "prod-mvk8ljhp",
