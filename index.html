@@ -451,10 +451,28 @@ let dlMap = null;          // tag -> { assetName: count }
 let dlTime = 0;
 let dlTask = null;         // 进行中的下载量请求（多个调用方共享同一个 promise）
 const DL_CACHE_KEY = "prod-dl-cache-v1";
+const DL_EXTRA_KEY = "prod-dl-extra-v1";
 try {  // 启动时载入上次成功拉取的计数缓存（API 失败时兜底显示）
   const _c = JSON.parse(localStorage.getItem(DL_CACHE_KEY) || "null");
   if (_c && _c.map) { dlMap = _c.map; dlTime = _c.time || 0; }
 } catch (e) {}
+/* 本站点上已点击、但 GitHub 计数还没来得及更新的下载次数（GitHub 计数有延迟）。
+   显示值 = GitHub 值 + dlExtra；等 GitHub 计数真正涨上来后再逐次扣减归零。 */
+let dlExtra = {};          // "tag|assetName" -> 本站点未确认的点击数
+try {
+  const _x = JSON.parse(localStorage.getItem(DL_EXTRA_KEY) || "{}");
+  if (_x && typeof _x === "object" && !Array.isArray(_x)) dlExtra = _x;
+} catch (e) {}
+const dlKeyOf = (tag, asset) => (tag || "") + "|" + (asset || "");
+function saveDlExtra() {
+  try {
+    /* 已确认完毕的条目顺手清掉，避免账本无限膨胀 */
+    const o = {};
+    Object.keys(dlExtra).forEach(k => { if (dlExtra[k] > 0) o[k] = dlExtra[k]; });
+    dlExtra = o;
+    localStorage.setItem(DL_EXTRA_KEY, JSON.stringify(dlExtra));
+  } catch (e) {}
+}
 const state = { q: "", sort: "date", token: localStorage.getItem("prod-admin-token") || "", me: null };
 
 /* ================= GitHub API ================= */
@@ -574,11 +592,24 @@ async function doFetchDl() {
       if (!state.token) throw e;
       rels = await gh("GET", url, null, "");
     }
-    dlMap = {};
+    const prevMap = dlMap || {};
+    const fresh = {};
     rels.forEach(r => {
-      dlMap[r.tag_name] = {};
-      (r.assets || []).forEach(a => { dlMap[r.tag_name][a.name] = a.download_count || 0; });
+      fresh[r.tag_name] = {};
+      (r.assets || []).forEach(a => { fresh[r.tag_name][a.name] = a.download_count || 0; });
     });
+    /* GitHub 计数上涨了：把对应次数从本地待确认账本里扣掉（本站点点的那几下 GitHub 已经记上了） */
+    let drained = false;
+    Object.keys(fresh).forEach(t => {
+      Object.keys(fresh[t]).forEach(nm => {
+        const k = dlKeyOf(t, nm);
+        if (!dlExtra[k]) return;
+        const growth = fresh[t][nm] - ((prevMap[t] && prevMap[t][nm]) || 0);
+        if (growth > 0) { dlExtra[k] = Math.max(0, dlExtra[k] - growth); drained = true; }
+      });
+    });
+    if (drained) saveDlExtra();
+    dlMap = fresh;
     dlTime = Date.now();
     try { localStorage.setItem(DL_CACHE_KEY, JSON.stringify({map: dlMap, time: dlTime})); } catch (e) {}
   } catch (e) {
@@ -599,17 +630,25 @@ function relTagsOf(p) {
   return out;
 }
 const dlOf = (p, f) => {
-  if (!dlMap || !f) return 0;
-  return relTagsOf(p).reduce((a, t) => a + ((dlMap[t] && dlMap[t][f.asset]) || 0), 0);
+  if (!f) return 0;
+  return relTagsOf(p).reduce((a, t) =>
+    a + ((dlMap && dlMap[t] && dlMap[t][f.asset]) || 0) + (dlExtra[dlKeyOf(t, f.asset)] || 0), 0);
 };
 /* 已不在当前下载列表里的历史文件（换过文件名 / 更早的版本）的下载次数 */
 function dlArch(p) {
-  if (!dlMap) return 0;
   const names = new Set((p.files || []).map(f => f.asset));
   let n = 0;
   relTagsOf(p).forEach(t => {
-    const m = dlMap[t] || {};
-    Object.keys(m).forEach(nm => { if (!names.has(nm)) n += m[nm] || 0; });
+    if (dlMap) {
+      const m = dlMap[t] || {};
+      Object.keys(m).forEach(nm => { if (!names.has(nm)) n += m[nm] || 0; });
+    }
+    Object.keys(dlExtra).forEach(k => {
+      if (k.indexOf(t + "|") === 0) {
+        const nm = k.slice(t.length + 1);
+        if (nm && !names.has(nm)) n += dlExtra[k] || 0;
+      }
+    });
   });
   return n;
 }
@@ -637,15 +676,15 @@ function fillAllDl() {
   }
 }
 
-/* 点击下载按钮：本地乐观 +1 立即反馈，稍后从 GitHub 拉真实值校准 */
+/* 点击下载按钮：本站点立即 +1（记入待确认账本，GitHub 计数延迟期间也不丢），
+   稍后从 GitHub 拉真实值，涨上去的部分再从账本扣减 */
 document.addEventListener("click", e => {
   const a = e.target.closest(".dl-btn");
   if (!a || !a.dataset.tag || !a.dataset.asset) return;
-  if (dlMap) {
-    dlMap[a.dataset.tag] = dlMap[a.dataset.tag] || {};
-    dlMap[a.dataset.tag][a.dataset.asset] = (dlMap[a.dataset.tag][a.dataset.asset] || 0) + 1;
-    fillAllDl();
-  }
+  const k = dlKeyOf(a.dataset.tag, a.dataset.asset);
+  dlExtra[k] = (dlExtra[k] || 0) + 1;
+  saveDlExtra();
+  fillAllDl();
   setTimeout(() => fetchDl(true).then(fillAllDl).catch(() => {}), 30000);
 });
 
