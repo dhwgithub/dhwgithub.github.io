@@ -524,12 +524,18 @@ async function loadData() {
 }
 
 /* 从仓库拉取最新数据：这样站点托管在任何平台，发布新产品都能自动同步 */
-/* 实时源优先（raw 无缓存）；jsDelivr 国内更快走兜底，但可能有 CDN 缓存延迟 */
+/* 实时源优先（raw 无缓存）；jsDelivr 国内更快走兜底，但 CDN 可能缓存几个小时前的旧数据 */
 const REMOTE_DATA = [
   "https://raw.githubusercontent.com/" + REPO_FULL + "/main/" + DATA_PATH,
   "https://cdn.jsdelivr.net/gh/" + REPO_FULL + "@main/" + DATA_PATH
 ];
+
+/* 数据版本号：每次提交都会 +1。远端版本号不比本地新时就直接丢弃，
+   否则 jsDelivr 的几小时旧缓存会把刚保存的数值又「闪回去」。 */
+const dataRev = d => (d && d.site && d.site.rev) || 0;
+
 async function syncFromRemote() {
+  const cur = dataRev(DATA);
   for (const url of REMOTE_DATA) {
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), 6000);
@@ -538,7 +544,7 @@ async function syncFromRemote() {
       clearTimeout(timer);
       if (!r.ok) continue;
       const d = await r.json();
-      if (d && Array.isArray(d.products) && JSON.stringify(d) !== JSON.stringify(DATA)) {
+      if (d && Array.isArray(d.products) && dataRev(d) > cur) {
         DATA = d;
         if (typeof route === "function") route();
       }
@@ -1121,7 +1127,7 @@ async function doPublish() {
           "（不影响发布；若想发布即开评论，请给 token 增加 Discussions 读写权限）</span>");
     }
     await commitData(d => { d.products.unshift(prod); return d; }, "发布产品：" + name + " v" + version);
-    DATA.products.unshift(prod);
+    /* commitData 已把 DATA 更新为提交后的数据（新产品已在内），这里不能再 unshift，否则会出现重复卡片 */
     pickedFiles = [];
     closeAdmin();
     toast("发布成功！GitHub Pages 刷新约需 1 分钟，已为你本地预览", 4200);
@@ -1168,6 +1174,9 @@ async function commitData(mutate, message) {
   const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
   const parsed = JSON.parse(new TextDecoder("utf-8").decode(bytes));
   const updated = mutate(parsed);
+  updated.site = updated.site || {};
+  updated.site.rev = (updated.site.rev || 0) + 1;   // 数据版本号：防止旧 CDN 缓存把新数据「闪回去」
+  updated.site.revTime = new Date().toISOString();
   const body = {
     message,
     content: b64(JSON.stringify(updated, null, 1)),
@@ -1175,6 +1184,12 @@ async function commitData(mutate, message) {
     branch: "main"
   };
   await gh("PUT", "/repos/" + REPO_FULL + "/contents/" + DATA_PATH, body);
+  /* 本地直接采用提交后的数据（它就是最新状态），界面立即生效、刷新也不会回退 */
+  DATA = updated;
+  dlTime = 0;   // 下载计数下次渲染强制重拉
+  try { route(); } catch (e) {}
+  /* 主动清掉 jsDelivr 对该文件的 CDN 缓存（失败无所谓，raw 源本来就是实时的） */
+  fetch("https://purge.jsdelivr.net/gh/" + REPO_FULL + "@main/" + DATA_PATH).catch(() => {});
   return updated;
 }
 
@@ -1313,11 +1328,15 @@ async function openEdit(pid) {
         updated: today, history: hist}, extra);
       return commitData(d => {
         const t = d.products.find(x => x.id === p.id);
+        if (!t) throw new Error("产品在远端数据中不存在（可能已被删除）");
         Object.assign(t, patch);
         return d;
       }, msg).then(() => {
-        Object.assign(p, patch);   // 本地立即生效，不用刷新页面等缓存
-        dlTime = 0;                // 下次渲染强制重拉下载计数（新 Release 要重新统计）
+        /* commitData 已把 DATA 换成提交后的最新数据，这里同步更新 DATA 里的对象；
+           捕获的 p 可能已被远端同步替换成孤立对象，直接改它会导致「保存了却不生效」 */
+        const cur = DATA.products.find(x => x.id === p.id);
+        if (cur) Object.assign(cur, patch);
+        Object.assign(p, patch);
         return patch;
       });
     };
