@@ -82,19 +82,19 @@
    "name": "私人定制",
    "tagline": "本地记账应用",
    "desc": "一款极简、年轻活力的安卓本地记账应用，使用原生 Android（Java）+ AndroidX 实现，数据仅保存在手机本机，不上传任何服务器。",
-   "version": "2.0.0",
-   "date": "2026-10-22",
-   "tag": "prod-mvjc2pmb-v2.0.0",
+   "version": "2.0.1",
+   "date": "2026-11-02",
+   "tag": "prod-mvjc2pmb-v2.0.1",
    "links": {
     "repo": "",
     "homepage": ""
    },
    "files": [
     {
-     "name": "ledger_v2.0.0.apk",
-     "asset": "ledger_v2.0.0.apk",
-     "size": 3919637,
-     "url": "https://github.com/dhwgithub/dhwgithub.github.io/releases/download/prod-mvjc2pmb-v2.0.0/ledger_v2.0.0.apk",
+     "name": "ledger.apk",
+     "asset": "ledger.apk",
+     "size": 3919953,
+     "url": "https://github.com/dhwgithub/dhwgithub.github.io/releases/download/prod-mvjc2pmb-v2.0.1/ledger.apk",
      "note": ""
     }
    ],
