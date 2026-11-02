@@ -27,7 +27,16 @@
     }
    ],
    "hidden": false,
-   "discussion": 4
+   "discussion": 4,
+   "updated": "2026-10-29",
+   "history": [
+    {
+     "version": "1.3.8",
+     "date": "2026-10-29",
+     "tag": "prod-mvtb6uty-v1.3.8",
+     "note": ""
+    }
+   ]
   },
   {
    "id": "prod-mvrlgkbq",
@@ -51,7 +60,16 @@
     }
    ],
    "hidden": false,
-   "discussion": 3
+   "discussion": 3,
+   "updated": "2026-10-28",
+   "history": [
+    {
+     "version": "1.5.3",
+     "date": "2026-10-28",
+     "tag": "prod-mvrlgkbq-v1.5.3",
+     "note": ""
+    }
+   ]
   },
   {
    "id": "prod-mvk8ljhp",
@@ -75,7 +93,16 @@
     }
    ],
    "hidden": false,
-   "discussion": 2
+   "discussion": 2,
+   "updated": "2026-10-23",
+   "history": [
+    {
+     "version": "1.1.0",
+     "date": "2026-10-23",
+     "tag": "prod-mvk8ljhp-v1.1.0",
+     "note": ""
+    }
+   ]
   },
   {
    "id": "prod-mvjc2pmb",
@@ -99,7 +126,22 @@
     }
    ],
    "hidden": false,
-   "discussion": 1
+   "discussion": 1,
+   "updated": "2026-11-02",
+   "history": [
+    {
+     "version": "2.0.0",
+     "date": "2026-10-22",
+     "tag": "prod-mvjc2pmb-v2.0.0",
+     "note": ""
+    },
+    {
+     "version": "2.0.1",
+     "date": "2026-11-02",
+     "tag": "prod-mvjc2pmb-v2.0.1",
+     "note": ""
+    }
+   ]
   },
   {
    "id": "demo-hello",
@@ -122,7 +164,16 @@
      "note": "演示文件：内容为一段说明文字"
     }
    ],
-   "hidden": true
+   "hidden": true,
+   "updated": "2026-10-22",
+   "history": [
+    {
+     "version": "1.0.0",
+     "date": "2026-10-22",
+     "tag": "demo-hello-v1.0.0",
+     "note": ""
+    }
+   ]
   }
  ]
 }
