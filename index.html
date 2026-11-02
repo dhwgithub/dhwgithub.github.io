@@ -449,7 +449,7 @@ const linkify = s => esc(s).replace(/(https?:\/\/[^\s<>"']+)/g, '<a href="$1" ta
 let DATA = null;           // products.json 内容
 let dlMap = null;          // tag -> { assetName: count }
 let dlTime = 0;
-let dlPending = false;
+let dlTask = null;         // 进行中的下载量请求（多个调用方共享同一个 promise）
 const DL_CACHE_KEY = "prod-dl-cache-v1";
 try {  // 启动时载入上次成功拉取的计数缓存（API 失败时兜底显示）
   const _c = JSON.parse(localStorage.getItem(DL_CACHE_KEY) || "null");
@@ -547,10 +547,17 @@ async function syncFromRemote() {
   }
 }
 
-async function fetchDl(force) {
-  if (dlPending) return;
-  if (!force && dlMap && Date.now() - dlTime < 30 * 60 * 1000) return;
-  dlPending = true;
+/* 拉取各版本 Release 的下载量。多个入口（首屏、列表、详情、点击下载）会同时调用，
+   这里必须把「同一个进行中的请求」交给所有调用方——否则后来的调用直接返回，
+   它的 .then 立刻执行但数据还没回来，计数就永远停在「…」（之前下载次数时有时无的根因）。 */
+function fetchDl(force) {
+  if (!force && dlMap && Date.now() - dlTime < 30 * 60 * 1000) return Promise.resolve();
+  if (dlTask) return force ? dlTask.then(() => fetchDl(true)) : dlTask;
+  dlTask = doFetchDl().finally(() => { dlTask = null; });
+  return dlTask;
+}
+
+async function doFetchDl() {
   const url = "/repos/" + REPO_FULL + "/releases?per_page=100";
   try {
     let rels;
@@ -572,7 +579,6 @@ async function fetchDl(force) {
     /* 接口失败（限流/网络不通）：沿用本地缓存显示；把时间戳拨旧，让下次调用可立刻重试 */
     if (dlMap) dlTime = Math.min(dlTime, Date.now() - 6 * 60 * 1000);
   }
-  dlPending = false;
 }
 
 /* 一个产品的全部历史版本 Release（tag 形如 prod-xxxx-v1.2.3）。
