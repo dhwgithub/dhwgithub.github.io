@@ -2,7 +2,9 @@
  "site": {
   "title": "dhwgithub 产品发布中心",
   "subtitle": "独立开发的软件产品 · 安装包下载 · 使用说明 · 用户评论",
-  "owner": "dhwgithub"
+  "owner": "dhwgithub",
+  "rev": 1,
+  "revTime": "2026-11-02T05:54:00Z"
  },
  "products": [
   {
