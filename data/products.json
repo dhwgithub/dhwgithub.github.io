@@ -141,7 +141,8 @@
      "tag": "prod-mvjc2pmb-v2.0.1",
      "note": ""
     }
-   ]
+   ],
+   "dlBase": 23
   },
   {
    "id": "demo-hello",
