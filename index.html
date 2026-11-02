@@ -549,7 +549,7 @@ async function syncFromRemote() {
 
 async function fetchDl(force) {
   if (dlPending) return;
-  if (!force && dlMap && Date.now() - dlTime < 5 * 60 * 1000) return;
+  if (!force && dlMap && Date.now() - dlTime < 30 * 60 * 1000) return;
   dlPending = true;
   const url = "/repos/" + REPO_FULL + "/releases?per_page=100";
   try {
@@ -770,17 +770,30 @@ function showDetail(p) {
       </a>
     </div>`).join("") || '<div class="d-desc" style="color:var(--fg-muted)">该产品暂未上传文件</div>';
 
-  const arch = dlArch(p) + (p.dlBase || 0);
-  if (arch > 0) $("#dFiles").insertAdjacentHTML("beforeend",
-    '<div class="farch">另有历史版本文件下载 <b id="dArch">' + arch + '</b> 次（已计入上方总次数）</div>');
-
+  renderArch(p);
   renderHistory(p);
 
   fillAllDl();               // 先用本地缓存立即显示，避免一直停在「…」
-  fetchDl().then(() => { fillAllDl(); renderHistory(p); }); // 拉取成功后用真实值校准
+  fetchDl().then(() => { fillAllDl(); renderHistory(p); renderArch(p); }); // 拉取成功后用真实值校准
 
   injectGiscus(p);
   window.scrollTo(0, 0);
+}
+
+/* 历史版本下载量说明行：计数要等 Release 列表回来才知道，所以单独补渲染 */
+function renderArch(p) {
+  const box = $("#dFiles");
+  if (!box) return;
+  const arch = dlArch(p) + (p.dlBase || 0);
+  let line = $("#dArchLine");
+  if (!arch) { if (line) line.remove(); return; }
+  if (!line) {
+    box.insertAdjacentHTML("beforeend",
+      '<div class="farch" id="dArchLine">另有历史版本文件下载 <b id="dArch">0</b> 次（已计入上方总次数）</div>');
+    line = $("#dArchLine");
+  }
+  const b = $("#dArch");
+  if (b) b.textContent = String(arch);
 }
 
 /* 更新记录：按日期倒序展示每个版本的版本号 / 日期 / 版本说明 */
@@ -798,7 +811,7 @@ function renderHistory(p) {
     <div class="hrow">
       <div class="hv">v${esc(h.version || "—")}${i === 0 ? '<span class="hnew">最新</span>' : ""}</div>
       <div class="hb">
-        <div class="hd">${fmtDate(h.date)}${h.tag && h.tag !== p.tag && (!dlMap || dlMap[h.tag])
+        <div class="hd">${fmtDate(h.date)}${h.tag && h.tag !== p.tag && dlMap && dlMap[h.tag]
           ? ' · <a href="https://github.com/' + REPO_FULL + "/releases/tag/" + encodeURIComponent(h.tag) + '" target="_blank" rel="noopener">该版本安装包</a>'
           : ""}</div>
         <div class="hn">${h.note ? esc(h.note).replace(/\n/g, "<br>") : '<span style="color:var(--fg-subtle)">（未填写版本说明）</span>'}</div>
