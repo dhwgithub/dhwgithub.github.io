@@ -3,8 +3,8 @@
   "title": "dhwgithub 产品发布中心",
   "subtitle": "独立开发的软件产品 · 安装包下载 · 使用说明 · 用户评论",
   "owner": "dhwgithub",
-  "rev": 3,
-  "revTime": "2026-11-02T06:06:27.511Z"
+  "rev": 4,
+  "revTime": "2026-11-03T01:18:59.722Z"
  },
  "products": [
   {
@@ -12,9 +12,9 @@
    "name": "本地项目管理",
    "tagline": "本地项目管理",
    "desc": "零依赖、纯本地、数据在自己硬盘上。",
-   "version": "1.3.8",
+   "version": "1.4.0",
    "date": "2026-10-29",
-   "tag": "prod-mvtb6uty-v1.3.8",
+   "tag": "prod-mvtb6uty-v1.4.0",
    "links": {
     "repo": "",
     "homepage": ""
@@ -23,20 +23,26 @@
     {
      "name": "iProject.zip",
      "asset": "iProject.zip",
-     "size": 37113,
-     "url": "https://github.com/dhwgithub/dhwgithub.github.io/releases/download/prod-mvtb6uty-v1.3.8/iProject.zip",
+     "size": 39630,
+     "url": "https://github.com/dhwgithub/dhwgithub.github.io/releases/download/prod-mvtb6uty-v1.4.0/iProject.zip",
      "note": ""
     }
    ],
    "hidden": false,
    "discussion": 4,
-   "updated": "2026-11-02",
+   "updated": "2026-11-03",
    "history": [
     {
      "version": "1.3.8",
      "date": "2026-10-29",
      "tag": "prod-mvtb6uty-v1.3.8",
      "note": ""
+    },
+    {
+     "version": "1.4.0",
+     "date": "2026-11-03",
+     "note": "- 新增BUG、需求类别",
+     "tag": "prod-mvtb6uty-v1.4.0"
     }
    ],
    "dlBase": 3
